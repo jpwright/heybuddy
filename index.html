@@ -4,6 +4,7 @@
     <link rel="stylesheet" type="text/css" href="style.css">
     <script type="text/javascript" src="jquery-1.11.2.min.js"></script>
     <script src="https://code.createjs.com/easeljs-0.8.0.min.js"></script>
+    <script src="https://code.createjs.com/tweenjs-0.6.0.min.js"></script>
     <script type="text/javascript">
 
     var canvas;
@@ -16,6 +17,11 @@
     
     var hand;
     var fist;
+    var buddy;
+   
+    var buddies = []; // Array holding all the buddy objects.
+    var buddiez = []; // Array holding the z coordinates of all the buddies.
+   
     var handPos = 0;
     
     function init() {
@@ -23,6 +29,14 @@
       width = canvas.width;
       height = canvas.height;
       stage = new createjs.Stage(canvas);
+      
+      
+      for (var i = 0; i < 10; i++) {
+	buddy = drawBuddy("hand");
+	stage.addChild(buddy);
+	buddies[i] = buddy;
+	buddiez[i] = i;
+      }
 
       hand = drawHand("hand");
       hand.x = canvas.width / 2;
@@ -35,6 +49,8 @@
       fist.y = canvas.height / 2;
       fist.visible = false;
       stage.addChild(fist);
+      
+      
       
       stage.update();
       
@@ -52,8 +68,23 @@
       };
       
       createjs.Ticker.addEventListener("tick", tick);
-      createjs.Ticker.setFPS(60);
-      function tick() {
+      createjs.Ticker.setFPS(24);
+      function tick(evt) {
+      
+	for (var i = 0; i < buddies.length; i++) {
+	  var b = buddies[i];
+	  buddiez[i] -= 0.01;
+	  if (buddiez[i] < 1) {
+	    nb = drawBuddy("hand");
+	    stage.addChild(nb);
+	    buddies[i] = nb;
+	    buddiez[i] = 10;
+	    moveBuddy(nb, b.x, buddiez[i]);
+	  } else {
+	    moveBuddy(b, b.x, buddiez[i]);
+	  }
+	  //buddy.y += evt.delta/1000*100;
+	}
       
 	updateStage();
 	var fps = document.getElementById('fps');
@@ -80,6 +111,37 @@
       }      
       h.set({alpha: 0.5});
       return h;
+    }
+    
+    function drawBuddy(type) {
+      var b;
+      switch(type) {
+	case "hand":
+	  b = new createjs.Bitmap("buddy.png");
+	  break;
+	case "fist":
+	  b = new createjs.Bitmap("buddy.png");
+	  break;
+      }
+      b.x = Math.random() * canvas.width;
+      b.y = Math.random() * canvas.height;
+      b.scaleX = 0.01;
+      b.scaleY = 0.01;
+      return b;
+    }
+    
+    function moveBuddy(b, x, z) {
+      // b is the buddy object
+      // x is horizontal position on the screen
+      // z is distance away from viewer
+      var bounds = b.getBounds();
+      b.scaleX = 1/z;
+      b.scaleY = 1/z;
+      var effWidth = bounds.width * b.scaleX;
+      var effHeight = bounds.height * b.scaleY;
+      b.x = x;
+      b.y = canvas.height/2 - effHeight/2;
+    
     }
 
     function keyPressed(evt) {
