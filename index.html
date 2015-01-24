@@ -3,10 +3,113 @@
   <head>
     <link rel="stylesheet" type="text/css" href="style.css">
     <script type="text/javascript" src="jquery-1.11.2.min.js"></script>
-    <script type="text/javascript" src="game.js"></script>
+    <script src="https://code.createjs.com/easeljs-0.8.0.min.js"></script>
+    <script type="text/javascript">
+
+    var canvas;
+    var stage;
+    
+    var KEYCODE_LEFT = 37, 
+      KEYCODE_RIGHT = 39,
+      KEYCODE_UP = 38, 
+      KEYCODE_DOWN = 40;
+    
+    var hand;
+    var fist;
+    var handPos = 0;
+    
+    function init() {
+      canvas = document.getElementById('game');
+      width = canvas.width;
+      height = canvas.height;
+      stage = new createjs.Stage(canvas);
+
+      hand = drawHand("hand");
+      hand.x = canvas.width / 2;
+      hand.y = canvas.height / 2;
+      hand.visible = true;
+      stage.addChild(hand);
+      
+      fist = drawHand("fist");
+      fist.x = canvas.width / 2;
+      fist.y = canvas.height / 2;
+      fist.visible = false;
+      stage.addChild(fist);
+      
+      stage.update();
+      
+      stage.on("stagemousemove", function(evt) {
+	hand.x = evt.stageX - hand.getBounds().width/2;
+	hand.y = evt.stageY - hand.getBounds().height/2;
+	fist.x = evt.stageX - fist.getBounds().width/2;
+	fist.y = evt.stageY - fist.getBounds().height/2;
+      });
+      
+      this.document.onkeydown = keyPressed;
+      this.document.onkeyup = function() {
+	hand.visible = true;
+	fist.visible = false;
+      };
+      
+      createjs.Ticker.addEventListener("tick", tick);
+      createjs.Ticker.setFPS(60);
+      function tick() {
+      
+	updateStage();
+	var fps = document.getElementById('fps');
+	fps.innerHTML = createjs.Ticker.getMeasuredFPS();
+      
+      }
+
+
+    }
+    
+    function updateStage() {
+      stage.update();
+    }
+
+    function drawHand(type) {
+      var h;
+      switch(type) {
+	case "hand":
+	  h = new createjs.Bitmap("hand.png");
+	  break;
+	case "fist":
+	  h = new createjs.Bitmap("fist.png");
+	  break;
+      }      
+      h.set({alpha: 0.5});
+      return h;
+    }
+
+    function keyPressed(evt) {
+      switch(event.keyCode) {
+	case KEYCODE_LEFT:	
+	  handPos = 0;
+	  hand.visible = true;
+	  fist.visible = false;
+	  break;
+	case KEYCODE_RIGHT: 
+	  handPos = 1;
+	  hand.visible = false;
+	  fist.visible = true;
+	  break;
+	case KEYCODE_UP: 
+	  handPos = 2;
+	  break;
+	case KEYCODE_DOWN: 
+	  handPos = 3;
+	  break;
+      }
+      updateStage();
+    }
+
+    </script>
   </head>
-  <body>
+  <body onload="init();">
     <canvas id="game" width="800" height="600"></canvas>
+    <br />
+    <span id="fps-container"><span id="fps">Loading</span> FPS</span>
   </body>
 </html>
       

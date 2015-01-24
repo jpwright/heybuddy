@@ -3,6 +3,7 @@ body {
   padding: 0px;
 }
 
-.game {
+#game {
+  cursor: none;
   border: 1px solid red;
 }
