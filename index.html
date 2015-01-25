@@ -10,17 +10,37 @@
     var canvas;
     var stage;
     
+    var FPS = 24; // Game FPS
+    
+    var NUM_BUDDIES = 10; // How many buddies are on the screen at any given time
+    var BUDDY_SPEED = 0.01; // How fast the buddies walk towards you
+    var BUDDY_AVOID_RATE = 20; // The rate at which a buddy moves to avoid the player
+    var BUDDY_AVOID_START = 0.4; // The distance at which a buddy starts to avoid (move left or right)
+    var BUDDY_AVOID_END = 0.2; // The distance at which a buddy disappears.
+    var BUDDY_PADDING = 1/8; // How far away from the edges of the screen the buddies should start
+    var BUDDY_START_DISTANCE = 12; // How far away new buddies should start
+    
+    var HAND_ALPHA = 0.5; // Alpha of the player's hand
+    
     var KEYCODE_LEFT = 37, 
       KEYCODE_RIGHT = 39,
       KEYCODE_UP = 38, 
-      KEYCODE_DOWN = 40;
+      KEYCODE_DOWN = 40,
+      KEYCODE_A = 65,
+      KEYCODE_S = 83,
+      KEYCODE_D = 68,
+      KEYCODE_F = 70;
     
+    var hands = [];
     var hand;
     var fist;
     var buddy;
+    var types = ["open", "hand", "fist", "shake"];
    
     var buddies = []; // Array holding all the buddy objects.
     var buddiez = []; // Array holding the z coordinates of all the buddies.
+    var buddiex = []; // Array holding movement in x direction of all buddies.
+    var buddiet = []; // Array holding the position of each buddy.
    
     var handPos = 0;
     
@@ -31,57 +51,51 @@
       stage = new createjs.Stage(canvas);
       
       
-      for (var i = 0; i < 10; i++) {
-	buddy = drawBuddy("hand");
-	stage.addChild(buddy);
-	buddies[i] = buddy;
-	buddiez[i] = i;
+      for (var i = 0; i < NUM_BUDDIES; i++) {
+	createBuddy(i, NUM_BUDDIES-i);
       }
-
-      hand = drawHand("hand");
-      hand.x = canvas.width / 2;
-      hand.y = canvas.height / 2;
-      hand.visible = true;
-      stage.addChild(hand);
       
-      fist = drawHand("fist");
-      fist.x = canvas.width / 2;
-      fist.y = canvas.height / 2;
-      fist.visible = false;
-      stage.addChild(fist);
+      for (var j = 0; j < types.length; j++) {
+	hands[j] = createHand(types[j]);
+      }
+      changeHand("open");
       
       
       
-      stage.update();
+      updateStage();
       
       stage.on("stagemousemove", function(evt) {
-	hand.x = evt.stageX - hand.getBounds().width/2;
-	hand.y = evt.stageY - hand.getBounds().height/2;
-	fist.x = evt.stageX - fist.getBounds().width/2;
-	fist.y = evt.stageY - fist.getBounds().height/2;
+	for (var i = 0; i < hands.length; i++) {
+	  hands[i].obj.x = evt.stageX - hands[i].obj.getBounds().width/2;
+	  hands[i].obj.y = evt.stageY - hands[i].obj.getBounds().height/2;
+	}
       });
       
       this.document.onkeydown = keyPressed;
       this.document.onkeyup = function() {
-	hand.visible = true;
-	fist.visible = false;
+	changeHand("open");
       };
       
       createjs.Ticker.addEventListener("tick", tick);
-      createjs.Ticker.setFPS(24);
+      createjs.Ticker.setFPS(FPS);
       function tick(evt) {
-      
 	for (var i = 0; i < buddies.length; i++) {
 	  var b = buddies[i];
-	  buddiez[i] -= 0.01;
-	  if (buddiez[i] < 1) {
-	    nb = drawBuddy("hand");
-	    stage.addChild(nb);
-	    buddies[i] = nb;
-	    buddiez[i] = 10;
-	    moveBuddy(nb, b.x, buddiez[i]);
+	  buddiez[i] -= BUDDY_SPEED;
+	  if (buddiez[i] < BUDDY_AVOID_START && (buddiez[i] > BUDDY_AVOID_END)) {
+	    if (buddiex[i] > canvas.width/2) {
+	      buddiex[i] += BUDDY_AVOID_RATE;
+	    } else {
+	      buddiex[i] -= BUDDY_AVOID_RATE;
+	    }
+	    moveBuddy(b, buddiex[i], buddiez[i]);
+	  } else if (buddiez[i] <= BUDDY_AVOID_END) {
+	    hideBuddy(b);
+	    console.log("new buddy!");
+	    createBuddy(i, BUDDY_START_DISTANCE);
+	    moveBuddy(buddies[i], buddiex[i], buddiez[i]);
 	  } else {
-	    moveBuddy(b, b.x, buddiez[i]);
+	    moveBuddy(b, buddiex[i], buddiez[i]);
 	  }
 	  //buddy.y += evt.delta/1000*100;
 	}
@@ -98,19 +112,42 @@
     function updateStage() {
       stage.update();
     }
+    
+    function createHand(type) {
+      h = drawHand(type);
+      h.x = canvas.width / 2;
+      h.y = canvas.height / 2;
+      stage.addChild(h);
+      d = {"type": type, "obj": h};
+      return d;
+    }
 
     function drawHand(type) {
       var h;
       switch(type) {
+	case "open":
+	  h = new createjs.Bitmap("open.png");
+	  break;
 	case "hand":
 	  h = new createjs.Bitmap("hand.png");
 	  break;
 	case "fist":
 	  h = new createjs.Bitmap("fist.png");
 	  break;
+	case "shake":
+	  h = new createjs.Bitmap("shake.png");
+	  break;
       }      
-      h.set({alpha: 0.5});
+      h.set({alpha: HAND_ALPHA});
       return h;
+    }
+    
+    function createBuddy(i, start) {
+      buddy = drawBuddy("hand");
+      stage.addChild(buddy);
+      buddies[i] = {"obj": buddy};
+      buddiez[i] = start;
+      buddiex[i] = canvas.width*BUDDY_PADDING + (Math.random() * canvas.width*(1-BUDDY_PADDING));
     }
     
     function drawBuddy(type) {
@@ -123,8 +160,8 @@
 	  b = new createjs.Bitmap("buddy.png");
 	  break;
       }
-      b.x = Math.random() * canvas.width;
-      b.y = Math.random() * canvas.height;
+      b.x = canvas.width / 2;
+      b.y = canvas.height / 2;
       b.scaleX = 0.01;
       b.scaleY = 0.01;
       return b;
@@ -134,32 +171,45 @@
       // b is the buddy object
       // x is horizontal position on the screen
       // z is distance away from viewer
-      var bounds = b.getBounds();
-      b.scaleX = 1/z;
-      b.scaleY = 1/z;
-      var effWidth = bounds.width * b.scaleX;
-      var effHeight = bounds.height * b.scaleY;
-      b.x = x;
-      b.y = canvas.height/2 - effHeight/2;
+      var bounds = b.obj.getBounds();
+      b.obj.scaleX = 1/z;
+      b.obj.scaleY = 1/z;
+      var effWidth = bounds.width * b.obj.scaleX;
+      var effHeight = bounds.height * b.obj.scaleY;
+      b.obj.x = x - effWidth/2;
+      b.obj.y = 3*canvas.height/4 - effHeight/2;
     
+    }
+    
+    function hideBuddy(b) {
+      b.obj.visible = false;
+    }
+    
+    function changeHand(type) {
+      for (var i = 0; i < hands.length; i++) {
+	hands[i].obj.visible = false;
+	if (hands[i].type == type) {
+	  hands[i].obj.visible = true;
+	}
+      }
     }
 
     function keyPressed(evt) {
+      //console.log(event.keyCode);
       switch(event.keyCode) {
-	case KEYCODE_LEFT:	
+	case KEYCODE_A:	
 	  handPos = 0;
-	  hand.visible = true;
-	  fist.visible = false;
+	  changeHand("hand");
 	  break;
-	case KEYCODE_RIGHT: 
+	case KEYCODE_S: 
 	  handPos = 1;
-	  hand.visible = false;
-	  fist.visible = true;
+	  changeHand("fist");
 	  break;
-	case KEYCODE_UP: 
+	case KEYCODE_D: 
 	  handPos = 2;
+	  changeHand("shake");
 	  break;
-	case KEYCODE_DOWN: 
+	case KEYCODE_F: 
 	  handPos = 3;
 	  break;
       }
