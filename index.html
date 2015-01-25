@@ -46,11 +46,11 @@
     
     var HITBOX_WIDTH = 150; // Width of bounding box for determining successful encounter
     
-    var SHAME_INCREMENT = 15;
+    var SHAME_INCREMENT = 20;
     var SHAME_LIMIT = 150;
     
     var SHAMEBAR_WIDTH = 50;
-    var SHAMEBAR_HEIGHT = 300;
+    var SHAMEBAR_HEIGHT = 280;
     var SHAMEBAR_PADDING = 20;
     
     var SHAMEBAR_BG = "#dddddd";
@@ -82,7 +82,7 @@
     var NAMES = ["Abby", "Agatha", "Allie", "Andrea", "Becky", "Binyamin", "Blobby", "Bobert", "Buddy", "Chad", "Chief", "Chili", "Cliff", "Curly", "Delilah", "Diana", "Dinnerbone", "Dr. Feelgood", "Dr. Zizmor", "Edward", "Emily", "Francis", "Gary",  "Grandma", "Grandpa", "Guillermo", "Hank", "Hester", "Jake", "James", "Jason", "Jenkins", "Jimothy", "Joebuddy", "John F.", "John L.", "Jorge", "Junior", "Kenny", "Lobe", "Mesopotamia", "Miller",  "Missingno", "Mr. Smith", "Nina", "Ol' Sluggish", "Peabody", "Phideaux", "Quincent", "Rebecca", "Rex", "Richard", "Saadi", "Sally", "Shanitha", "Steven", "Timothy", "Twenteen", "Ugly", "Unknown", "Victoria", "Wes", "Xavier", "Yasmine", "Zachary", "Zadik"];
     
     var SPRITES = ["1", "2", "3"]; // All the folder names within /buddies
-    
+    var HAND_SPRITES = ["1", "2"];
     
     var STATE_NAMES = {"open": "nothing", "hand": "high five", "fist": "fist bump", "shake": "handshake"};
     
@@ -131,7 +131,7 @@
       stage = new createjs.Stage(canvas);
       
       var background = new createjs.Bitmap("background.jpg");
-      background.y = 180;
+      background.y = -430;
       
       stage.addChild(background);
       
@@ -143,8 +143,9 @@
       
       generateNewBuddies();
       
+      var handSprite = HAND_SPRITES[Math.round(Math.random() * (HAND_SPRITES.length - 1))]; 
       for (var j = 0; j < types.length; j++) {
-	hands[j] = createHand(types[j]);
+	hands[j] = createHand(types[j], handSprite);
       }
       changeHand("open");
       
@@ -166,9 +167,7 @@
       stage.addChild(shame_bg);
       
       var shame_line = new createjs.Shape();
-      shame_line.graphics.beginFill("#000000").drawRect(0, 0, SHAMEBAR_WIDTH, 1);
-      shame_bg.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
-      shame_bg.y = SHAMEBAR_PADDING;
+      shame_line.graphics.beginFill("#000000").drawRect(canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH, SHAMEBAR_PADDING + SHAMEBAR_HEIGHT/2, SHAMEBAR_WIDTH, 1);
       shame_line.set({alpha: 0.8});
       stage.addChild(shame_line);
       
@@ -197,7 +196,7 @@
 	}
       });
       
-      tickOnce = true;
+      //tickOnce = true;
       
       stage.on("stagemouseup", function(evt) {
 	hideStartScreen();
@@ -217,6 +216,7 @@
 	    hideAllBuddies(b);
 	  }
 	  shamelevel = 0;
+	  updateStatus();
 	  generateNewBuddies();
 	}
       });
@@ -459,23 +459,31 @@
     
       if ((shamelevel >= 0) && (shamelevel < 10)) {
 	st.text = "Status: just ok";
-      } else if ((shamelevel >= 10) && (shamelevel < 30)) {
+      } else if ((shamelevel >= 20) && (shamelevel < 40)) {
 	st.text = "Status: pretty cool";
-      } else if ((shamelevel >= 30) && (shamelevel < 55)) {
+      } else if ((shamelevel >= 40) && (shamelevel < 60)) {
 	st.text = "Status: hip with it";
-      } else if ((shamelevel >= 55) && (shamelevel < 80)) {
+      } else if ((shamelevel >= 60) && (shamelevel < 80)) {
 	st.text = "Status: da bomb";
+      } else if ((shamelevel >= 80) && (shamelevel < 105)) {
+	st.text = "Status: coolest around";
+      } else if ((shamelevel >= 105) && (shamelevel < 130)) {
+	st.text = "Status: everybody loves me";
+      } else if ((shamelevel >= 130) && (shamelevel < 150)) {
+	st.text = "Status: lord of greetings";
 	
-      } else if ((shamelevel >= -10) && (shamelevel < 0)) {
+      } else if ((shamelevel >= -20) && (shamelevel < 0)) {
 	st.text = "Status: kinda meh";
-      } else if ((shamelevel >= -20) && (shamelevel < -10)) {
-	st.text = "Status: not feeling it";
       } else if ((shamelevel >= -40) && (shamelevel < -20)) {
+	st.text = "Status: not feeling it";
+      } else if ((shamelevel >= -60) && (shamelevel < -40)) {
 	st.text = "Status: can I go home?";
-      } else if ((shamelevel >= -75) && (shamelevel < -40)) {
+      } else if ((shamelevel >= -80) && (shamelevel < -60)) {
 	st.text = "Status: this is all my fault";
-      } else if ((shamelevel >= -75) && (shamelevel < -120)) {
+      } else if ((shamelevel >= -120) && (shamelevel < -80)) {
 	st.text = "Status: sever all ties";
+      } else if ((shamelevel >= -150) && (shamelevel < -120)) {
+	st.text = "Status: worst ever";
 	
       } else {
 	st.text = "Status: off the charts";
@@ -483,8 +491,8 @@
     
     }
     
-    function createHand(type) {
-      h = drawHand(type);
+    function createHand(type, sprite) {
+      h = drawHand(type, sprite);
       h.x = canvas.width / 2;
       h.y = canvas.height / 2;
       h.scaleX = 0.5;
@@ -494,20 +502,21 @@
       return d;
     }
 
-    function drawHand(type) {
+    function drawHand(type, sprite) {
       var h;
+      var folder = "hands/"+sprite+"/";
       switch(type) {
 	case "open":
-	  h = new createjs.Bitmap("open.png");
+	  h = new createjs.Bitmap(folder+"open.png");
 	  break;
 	case "hand":
-	  h = new createjs.Bitmap("hand.png");
+	  h = new createjs.Bitmap(folder+"hand.png");
 	  break;
 	case "fist":
-	  h = new createjs.Bitmap("fist.png");
+	  h = new createjs.Bitmap(folder+"fist.png");
 	  break;
 	case "shake":
-	  h = new createjs.Bitmap("shake.png");
+	  h = new createjs.Bitmap(folder+"shake.png");
 	  break;
       }      
       h.set({alpha: HAND_ALPHA});
@@ -538,6 +547,7 @@
       
       for (var j = 0; j < buddy_types.length; j++) {
 	var b = drawBuddy(buddy_types[j], sprite);
+	
 	container.addChildAt(b, j);
       }
       
@@ -555,6 +565,7 @@
       
       
       buddies[i] = {"container": container, "z": start, "x": randomBuddyStart(), "state": state, "waitCounter": 0, "waitLimit": newBuddyWaitTime(), "name" : name, "encountered": false, "sprite": sprite};
+      changeBuddyType(i, "hand");
       changeBuddyType(i, state);
     }
     
@@ -694,10 +705,11 @@
     </script>
   </head>
   <body onload="init();">
+  <div id="center">
     <canvas id="game" width="800" height="600"></canvas>
     <br />
     <span id="fps-container"><span id="fps">Loading</span> FPS</span>
-    
+  </div> 
   </body>
 </html>
       

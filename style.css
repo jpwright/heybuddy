@@ -1,9 +1,16 @@
 body {
   margin: 0px;
   padding: 0px;
+  background: black;
+}
+
+#center {
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 50px;
+  width: 800px;
 }
 
 #game {
   cursor: none;
-  border: 1px solid red;
 }
