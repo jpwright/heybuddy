@@ -37,7 +37,7 @@
       KEYCODE_D = 68,
       KEYCODE_F = 70;
     
-    var NAMES = ["Abby", "Agatha", "Allie", "Becky", "Binyamin", "Buddy", "Chief", "Chill", "Cliff", "Curly", "Delilah", "Diana", "Dinnerbone", "Dr. Feelgood", "Dr. Zizmor", "Emily", "Francis", "Grandma", "Grandpa", "Guillermo", "James", "Jason", "Jimothy", "John F.", "John L.", "Jorge", "Junior", "Kenny", "Lobe", "Mesopotamia", "Mr. Smith", "Peabody", "Quincent", "Rebecca", "Rex", "Richard", "Sally", "Steven", "Timothy", "Unknown", "Yasmine", "Zachary", "Zadik"];
+    var NAMES = ["Abby", "Agatha", "Allie", "Andrea", "Becky", "Binyamin", "Buddy", "Chief", "Chill", "Cliff", "Curly", "Delilah", "Diana", "Dinnerbone", "Dr. Feelgood", "Dr. Zizmor", "Emily", "Francis", "Grandma", "Grandpa", "Guillermo", "Jake", "James", "Jason", "Jimothy", "John F.", "John L.", "Jorge", "Junior", "Kenny", "Lobe", "Mesopotamia", "Mr. Smith", "Peabody", "Quincent", "Rebecca", "Rex", "Richard", "Sally", "Steven", "Timothy", "Unknown", "Yasmine", "Zachary", "Zadik"];
     
     var STATE_NAMES = {"open": "nothing", "hand": "high five", "fist": "fist bump", "shake": "handshake"};
     
@@ -52,6 +52,9 @@
     var shamebar;
     
     var shamelevel = 0;
+    
+    var mouseX;
+    var mouseY;
    
     var buddies = []; // Array holding all the buddy objects.
    
@@ -84,6 +87,8 @@
 	for (var i = 0; i < hands.length; i++) {
 	  hands[i].obj.x = evt.stageX - hands[i].obj.getBounds().width/2;
 	  hands[i].obj.y = evt.stageY - hands[i].obj.getBounds().height/2;
+	  mouseX = evt.stageX;
+	  mouseY = evt.stageY;
 	}
       });
       
