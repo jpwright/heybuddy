@@ -81,7 +81,7 @@
     
     var NAMES = ["Abby", "Agatha", "Allie", "Andrea", "Becky", "Binyamin", "Blobby", "Bobert", "Buddy", "Chad", "Chief", "Chili", "Cliff", "Curly", "Delilah", "Diana", "Dinnerbone", "Dr. Feelgood", "Dr. Zizmor", "Edward", "Emily", "Francis", "Gary",  "Grandma", "Grandpa", "Guillermo", "Hank", "Hester", "Jake", "James", "Jason", "Jenkins", "Jimothy", "Joebuddy", "John F.", "John L.", "Jorge", "Junior", "Kenny", "Lobe", "Mesopotamia", "Miller",  "Missingno", "Mr. Smith", "Nina", "Ol' Sluggish", "Peabody", "Phideaux", "Quincent", "Rebecca", "Rex", "Richard", "Saadi", "Sally", "Shanitha", "Steven", "Timothy", "Twenteen", "Ugly", "Unknown", "Victoria", "Wes", "Xavier", "Yasmine", "Zachary", "Zadik"];
     
-    var SPRITES = ["1", "2", "3"]; // All the folder names within /buddies
+    var SPRITES = ["1", "2", "3", "4"]; // All the folder names within /buddies
     var HAND_SPRITES = ["1", "2"];
     
     var STATE_NAMES = {"open": "nothing", "hand": "high five", "fist": "fist bump", "shake": "handshake"};
@@ -216,6 +216,7 @@
 	    hideAllBuddies(b);
 	  }
 	  shamelevel = 0;
+	  message.text = "Hey Buddy!";
 	  updateStatus();
 	  generateNewBuddies();
 	}
@@ -256,6 +257,7 @@
 	      if (b.encountered == false) {
 		if ((b.state == handPos) && (mouseX >= (b.x - HITBOX_WIDTH)) && (mouseX <= (b.x + HITBOX_WIDTH))) {
 		  message.text = "Sweet "+STATE_NAMES[b.state]+" with "+b.name;
+		  audio_yes.currentTime = 0;
 		  audio_yes.play();
 		  if (shamelevel <= SHAME_LIMIT - SHAME_INCREMENT) {
 		    shamelevel += SHAME_INCREMENT;
@@ -263,6 +265,7 @@
 		  encounters[b.name][b.state] += 1;
 		} else {
 		  message.text = "Awkward moment with "+b.name;
+		  audio_no.currentTime = 0;
 		  audio_no.play();
 		  if (shamelevel >= -1*SHAME_LIMIT + SHAME_INCREMENT) {
 		    shamelevel -= SHAME_INCREMENT;
@@ -416,7 +419,25 @@
 	  fistBumps = encounters[bestFriend]["fist"];
 	}
       }
-      end_message.text = "you died of awkwardness\nbut survived "+totalEncounters.toString()+" total encounters\nbest friend: "+bestFriend+"\n\t\t"+highFives.toString()+" high fives\n\t\t"+handshakes.toString()+" handshakes\n\t\t"+fistBumps.toString()+" fist bumps\nclick anywhere to start over";
+      var highFivesString;
+      var handshakesString;
+      var fistBumpsString;
+      if (highFives == 1) {
+	highFivesString = highFives.toString()+" high five";
+      } else {
+	highFivesString = highFives.toString()+" high fives";
+      }
+      if (handshakes == 1) {
+	handshakesString = handshakes.toString()+" handshake";
+      } else {
+	handshakesString = handshakes.toString()+" handshakes";
+      }
+      if (fistBumps == 1) {
+	fistBumpsString = fistBumps.toString()+" fist bump";
+      } else {
+	fistBumpsString = fistBumps.toString()+" fist bumps";
+      }
+      end_message.text = "you died of awkwardness\nbut survived "+totalEncounters.toString()+" total encounters\nbest friend: "+bestFriend+"\n\t\t"+highFivesString+"\n\t\t"+handshakesString+"\n\t\t"+fistBumpsString+"\nclick anywhere to start over";
       initializeEncounters();
       showStopScreen();
     }
