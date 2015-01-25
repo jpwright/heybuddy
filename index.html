@@ -2,6 +2,7 @@
 <html>
   <head>
     <link rel="stylesheet" type="text/css" href="style.css">
+    <link href='http://fonts.googleapis.com/css?family=Patrick+Hand+SC|Fredoka+One' rel='stylesheet' type='text/css'>
     <script type="text/javascript" src="jquery-1.11.2.min.js"></script>
     <script src="https://code.createjs.com/easeljs-0.8.0.min.js"></script>
     <script src="https://code.createjs.com/tweenjs-0.6.0.min.js"></script>
@@ -129,12 +130,12 @@
       }
       changeHand("open");
       
-      message = new createjs.Text("Hey Buddy!", "20px Arial", "#ff2222");
+      message = new createjs.Text("Hey Buddy!", "20px Fredoka One", "#ff2222");
       message.x = 0;
       message.y = 0;
       stage.addChild(message);
       
-      st = new createjs.Text("Status: just ok", "20px Arial", "#ff2222");
+      st = new createjs.Text("Status: just ok", "20px Patrick Hand SC", "#ff2222");
       st.x = 0;
       st.y = 20;
       stage.addChild(st);
@@ -282,14 +283,14 @@
       overlay_start_rect.set({alpha: 0.8});
       overlay_start.addChild(overlay_start_rect);
       
-      var title = new createjs.Text("Hey... Buddy", TITLE_SIZE.toString()+"px Arial", TITLE_COLOR);
+      var title = new createjs.Text("Hey... Buddy", TITLE_SIZE.toString()+"px Fredoka One", TITLE_COLOR);
       title.x = canvas.width/2 - title.getBounds().width/2;
       title.y = canvas.height/2 - title.getBounds().height/2 - 80;
       overlay_start.addChild(title);
       
       
       
-      var start = new createjs.Text("a game about encounters\nclick anywhere to start", SUBTITLE_SIZE.toString()+"px Arial", SUBTITLE_COLOR);
+      var start = new createjs.Text("a game about encounters\nclick anywhere to start", SUBTITLE_SIZE.toString()+"px Patrick Hand SC", SUBTITLE_COLOR);
       start.x = canvas.width/2 - start.getBounds().width/2;
       start.y = canvas.height/2 - start.getBounds().height/2 + 80;
       overlay_start.addChild(start);
@@ -306,14 +307,14 @@
       overlay_stop_rect.set({alpha: 0.8});
       overlay_stop.addChild(overlay_stop_rect);
       
-      var title = new createjs.Text("You Lose", TITLE_SIZE.toString()+"px Arial", TITLE_COLOR);
+      var title = new createjs.Text("You Lose", TITLE_SIZE.toString()+"px Fredoka One", TITLE_COLOR);
       title.x = canvas.width/2 - title.getBounds().width/2;
       title.y = canvas.height/2 - title.getBounds().height/2 - 80;
       overlay_stop.addChild(title);
       
       
       
-      var start = new createjs.Text("you died of awkwardness\nclick anywhere to try again", SUBTITLE_SIZE.toString()+"px Arial", SUBTITLE_COLOR);
+      var start = new createjs.Text("you died of awkwardness\nclick anywhere to try again", SUBTITLE_SIZE.toString()+"px Fredoka One", SUBTITLE_COLOR);
       start.x = canvas.width/2 - start.getBounds().width/2;
       start.y = canvas.height/2 - start.getBounds().height/2 + 80;
       overlay_stop.addChild(start);
@@ -456,7 +457,7 @@
       
       var name = NAMES[Math.round(Math.random() * (NAMES.length - 1))];
       
-      var n = new createjs.Text(name, NAMETAG_SIZE.toString()+"px Arial", "#ff2222");
+      var n = new createjs.Text(name, NAMETAG_SIZE.toString()+"px Patrick Hand SC", "#ff2222");
       n.x = -100;
       n.y = -100;
       container.addChildAt(n, buddy_types.length);
