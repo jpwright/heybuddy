@@ -12,21 +12,29 @@
     
     var FPS = 24; // Game FPS
     
-    var NUM_BUDDIES = 10; // How many buddies are on the screen at any given time
+    var NUM_BUDDIES = 100; // How many buddies are on the screen at any given time
     var BUDDY_SPEED = 0.01; // How fast the buddies walk towards you
     var BUDDY_AVOID_RATE = 2000; // The rate at which a buddy moves to avoid the player, as a coefficient to buddy speed
-    var BUDDY_AVOID_START = 0.4; // The distance at which a buddy starts to avoid (move left or right)
-    var BUDDY_AVOID_END = 0.2; // The distance at which a buddy disappears.
+    var BUDDY_AVOID_START = 0.8; // The distance at which a buddy starts to avoid (move left or right)
+    var BUDDY_AVOID_END = 0.4; // The distance at which a buddy disappears.
     var BUDDY_PADDING = 1/6; // How far away from the edges of the screen the buddies should start
-    var BUDDY_START_DISTANCE = 12; // How far away new buddies should start
+    var BUDDY_SPACING = 2; // How far away the buddies should be from eachother
+    var BUDDY_CLOSEST = 3; // How close the very first buddy should start at
     
-    var BUDDY_MIN_CHANGE_TIME = 50; // Frames until buddy can change type
+    var BUDDY_MIN_CHANGE_TIME = 20; // Frames until buddy can change type
     var BUDDY_MAX_CHANGE_TIME = 100; // Frames until buddy HAS to change type. Actual change time is somewhere in between
-    var BUDDY_MIN_CHANGE_Z = 0.5; // Closer than this, the buddy can't change type
+    var BUDDY_MIN_CHANGE_Z = 0.7; // Closer than this, the buddy can't change type
     
     var BUDDY_ACCELERATION = 0.00001; // Amount the speed of the buddies increases over time
     
-    var HAND_ALPHA = 0.5; // Alpha of the player's hand
+    var HAND_ALPHA = 0.9; // Alpha of the player's hand
+    
+    var NAMETAG_OFFSET = 450; // How high above the center of the buddy the nametag should go
+    var NAMETAG_SIZE = 36; // Font size of name tag in px
+    
+    var HORIZON_PCT = 4/5; // Percentage down the screen the horizon is. Lower num = more crotch
+    
+    var HITBOX_WIDTH = 150; // Width of bounding box for determining successful encounter
     
     var KEYCODE_LEFT = 37, 
       KEYCODE_RIGHT = 39,
@@ -37,7 +45,7 @@
       KEYCODE_D = 68,
       KEYCODE_F = 70;
     
-    var NAMES = ["Abby", "Agatha", "Allie", "Andrea", "Becky", "Binyamin", "Buddy", "Chief", "Chill", "Cliff", "Curly", "Delilah", "Diana", "Dinnerbone", "Dr. Feelgood", "Dr. Zizmor", "Emily", "Francis", "Grandma", "Grandpa", "Guillermo", "Jake", "James", "Jason", "Jimothy", "John F.", "John L.", "Jorge", "Junior", "Kenny", "Lobe", "Mesopotamia", "Mr. Smith", "Peabody", "Quincent", "Rebecca", "Rex", "Richard", "Sally", "Steven", "Timothy", "Unknown", "Yasmine", "Zachary", "Zadik"];
+    var NAMES = ["Abby", "Agatha", "Allie", "Andrea", "Becky", "Binyamin", "Buddy", "Chief", "Chill", "Cliff", "Curly", "Delilah", "Diana", "Dinnerbone", "Dr. Feelgood", "Dr. Zizmor", "Edward", "Emily", "Francis", "Grandma", "Grandpa", "Guillermo", "Jake", "James", "Jason", "Jenkins", "Jimothy", "John F.", "John L.", "Jorge", "Junior", "Kenny", "Lobe", "Mesopotamia", "Mr. Smith", "Nina", "Peabody", "Quincent", "Rebecca", "Rex", "Richard", "Saadi", "Sally", "Steven", "Timothy", "Unknown", "Victoria", "Xavier", "Yasmine", "Zachary", "Zadik"];
     
     var STATE_NAMES = {"open": "nothing", "hand": "high five", "fist": "fist bump", "shake": "handshake"};
     
@@ -68,7 +76,7 @@
       
       
       for (var i = 0; i < NUM_BUDDIES; i++) {
-	createBuddy(i, i+1 + (BUDDY_START_DISTANCE - NUM_BUDDIES));
+	createBuddy(i, (i*BUDDY_SPACING)+BUDDY_CLOSEST);
       }
       
       for (var j = 0; j < types.length; j++) {
@@ -117,10 +125,10 @@
 	    moveAllBuddies(b, b.x, b.z);
 	    
 	    if (b.encountered == false) {
-	      if (b.state != handPos) {
-		message.text = "Awkward moment with "+b.name;
-	      } else {
+	      if ((b.state == handPos) && (mouseX >= (b.x - HITBOX_WIDTH)) && (mouseX <= (b.x + HITBOX_WIDTH))) {
 		message.text = "Sweet "+STATE_NAMES[b.state]+" with "+b.name;
+	      } else {
+		message.text = "Awkward moment with "+b.name;
 	      }
 	      b.encountered = true;
 	    }
@@ -128,7 +136,7 @@
 	  } else if (b.z <= BUDDY_AVOID_END) {
 	    hideAllBuddies(b);
 	    console.log("new buddy!");
-	    createBuddy(i, BUDDY_START_DISTANCE);
+	    createBuddy(i, ((NUM_BUDDIES-1)*BUDDY_SPACING)+BUDDY_CLOSEST);
 	    moveAllBuddies(buddies[i], b.x, b.z);
 	    
 	    
@@ -153,7 +161,7 @@
 	    while (!goodChoice) {
 	      var choice = Math.round(Math.random() * types.length);
 	      var newType = types[choice];
-	      if (newType != b.type) {
+	      if ((newType != b.type) && (newType != "open")) {
 		goodChoice = true;
 	      }
 	    }
@@ -224,7 +232,8 @@
       }
       
       var name = NAMES[Math.round(Math.random() * (NAMES.length - 1))];
-      var n = new createjs.Text(name, "20px Arial", "#ff2222");
+      
+      var n = new createjs.Text(name, NAMETAG_SIZE.toString()+"px Arial", "#ff2222");
       n.x = -100;
       n.y = -100;
       container.addChildAt(n, types.length);
@@ -285,7 +294,7 @@
     }
     
     function moveName(d, x, z) {
-      console.log(d.name);
+      //console.log(d.name);
       
       var n = d.container.getChildAt(types.length);
       var bounds = n.getBounds();
@@ -293,8 +302,8 @@
       n.scaleY = 1/z;
       var effWidth = bounds.width * n.scaleX;
       var effHeight = bounds.height * n.scaleY;
-      n.x = x - effWidth/2;
-      n.y = 3*canvas.height/4 - effHeight/2 - 200/z;
+      n.x = x - effWidth/2 + 10;
+      n.y = HORIZON_PCT*canvas.height - effHeight/2 - NAMETAG_OFFSET/z;
       n.set({alpha: 5/z});
     }
     
@@ -308,7 +317,7 @@
       var effWidth = bounds.width * b.scaleX;
       var effHeight = bounds.height * b.scaleY;
       b.x = x - effWidth/2;
-      b.y = 3*canvas.height/4 - effHeight/2;
+      b.y = HORIZON_PCT*canvas.height - effHeight/2;
       b.set({alpha: 5/z});
     
     }
