@@ -46,7 +46,7 @@
     
     var HITBOX_WIDTH = 150; // Width of bounding box for determining successful encounter
     
-    var SHAME_INCREMENT = 5;
+    var SHAME_INCREMENT = 15;
     var SHAME_LIMIT = 150;
     
     var SHAMEBAR_WIDTH = 50;
@@ -65,7 +65,7 @@
     var TITLE_SIZE = 48;
     
     var SUBTITLE_COLOR = "#111111";
-    var SUBTITLE_SIZE = 36;
+    var SUBTITLE_SIZE = 20;
     
     var BUTTON_WIDTH = 160;
     var BUTTON_HEIGHT = 80;
@@ -79,10 +79,15 @@
       KEYCODE_D = 68,
       KEYCODE_F = 70;
     
-    var NAMES = ["Abby", "Agatha", "Allie", "Andrea", "Becky", "Binyamin", "Blobby", "Bobert", "Buddy", "Chad", "Chief", "Chill", "Cliff", "Curly", "Delilah", "Diana", "Dinnerbone", "Dr. Feelgood", "Dr. Zizmor", "Edward", "Emily", "Francis", "Gary",  "Grandma", "Grandpa", "Guillermo", "Hank", "Hester", "Jake", "James", "Jason", "Jenkins", "Jimothy", "Joebuddy", "John F.", "John L.", "Jorge", "Junior", "Kenny", "Lobe", "Mesopotamia", "Miller",  "Missingno", "Mr. Smith", "Nina", "Ol' Sluggish", "Peabody", "Phideaux", "Quincent", "Rebecca", "Rex", "Richard", "Saadi", "Sally", "Shanitha", "Steven", "Timothy", "Twenteen", "Ugly", "Unknown", "Victoria", "Wes", "Xavier", "Yasmine", "Zachary", "Zadik"];
+    var NAMES = ["Abby", "Agatha", "Allie", "Andrea", "Becky", "Binyamin", "Blobby", "Bobert", "Buddy", "Chad", "Chief", "Chili", "Cliff", "Curly", "Delilah", "Diana", "Dinnerbone", "Dr. Feelgood", "Dr. Zizmor", "Edward", "Emily", "Francis", "Gary",  "Grandma", "Grandpa", "Guillermo", "Hank", "Hester", "Jake", "James", "Jason", "Jenkins", "Jimothy", "Joebuddy", "John F.", "John L.", "Jorge", "Junior", "Kenny", "Lobe", "Mesopotamia", "Miller",  "Missingno", "Mr. Smith", "Nina", "Ol' Sluggish", "Peabody", "Phideaux", "Quincent", "Rebecca", "Rex", "Richard", "Saadi", "Sally", "Shanitha", "Steven", "Timothy", "Twenteen", "Ugly", "Unknown", "Victoria", "Wes", "Xavier", "Yasmine", "Zachary", "Zadik"];
+    
+    var SPRITES = ["1", "2"]; // All the folder names within /buddies
     
     
     var STATE_NAMES = {"open": "nothing", "hand": "high five", "fist": "fist bump", "shake": "handshake"};
+    
+    var encounters = {};
+    var totalEncounters = 0;
     
     var hands = [];
     var hand;
@@ -92,8 +97,10 @@
     var buddy_types = ["hand", "fist", "shake"];
     
     var playing = false;
+    var lost = false;
     var overlay_start;
     var overlay_end;
+    var end_message;
     
     var message;
     var st;
@@ -121,7 +128,7 @@
       showStartScreen();
       createStopScreen();
       
-      
+      initializeEncounters();
       
       generateNewBuddies();
       
@@ -146,6 +153,13 @@
       shame_bg.y = SHAMEBAR_PADDING;
       shame_bg.set({alpha: 0.7});
       stage.addChild(shame_bg);
+      
+      var shame_line = new createjs.Shape();
+      shame_line.graphics.beginFill("#000000").drawRect(0, 0, SHAMEBAR_WIDTH, 1);
+      shame_bg.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
+      shame_bg.y = SHAMEBAR_PADDING;
+      shame_line.set({alpha: 0.8});
+      stage.addChild(shame_line);
       
       shame_good = new createjs.Shape();
       shame_good.graphics.beginFill(SHAMEBAR_GOOD).drawRect(0, 0, SHAMEBAR_WIDTH, 1);
@@ -176,6 +190,14 @@
 	hideStartScreen();
 	hideStopScreen();
 	playing = true;
+	if (lost == true) {
+	  lost = false;
+	  for (var i = 0; i < buddies.length; i++) {
+	    var b = buddies[i];
+	    hideAllBuddies(b);
+	    generateNewBuddies();
+	  }
+	}
       });
       
       this.document.onkeydown = keyPressed;
@@ -215,15 +237,18 @@
 		  if (shamelevel <= SHAME_LIMIT - SHAME_INCREMENT) {
 		    shamelevel += SHAME_INCREMENT;
 		  }
+		  encounters[b.name][b.state] += 1;
 		} else {
 		  message.text = "Awkward moment with "+b.name;
 		  if (shamelevel >= -1*SHAME_LIMIT + SHAME_INCREMENT) {
 		    shamelevel -= SHAME_INCREMENT;
+		    //encounters[b.name][b.state] -= 1;
 		  } else {
 		    youLose();
 		  }
 		}
 		updateStatus();
+		totalEncounters += 1;
 		b.encountered = true;
 	      }
 	      
@@ -314,10 +339,10 @@
       
       
       
-      var start = new createjs.Text("you died of awkwardness\nclick anywhere to try again", SUBTITLE_SIZE.toString()+"px Fredoka One", SUBTITLE_COLOR);
-      start.x = canvas.width/2 - start.getBounds().width/2;
-      start.y = canvas.height/2 - start.getBounds().height/2 + 80;
-      overlay_stop.addChild(start);
+      end_message = new createjs.Text("you died of awkwardness\nclick anywhere to try again", SUBTITLE_SIZE.toString()+"px Fredoka One", SUBTITLE_COLOR);
+      end_message.x = canvas.width/2 - OVERLAY_WIDTH/2 + 10;
+      end_message.y = canvas.height/2 - end_message.getBounds().height/2;
+      overlay_stop.addChild(end_message);
       
       overlay_stop.visible = false;
       
@@ -341,12 +366,47 @@
     }
     
     function youLose() {
-      showStopScreen();
+      
       playing = false;
-      generateNewBuddies();
+      lost = true;
       buddy_speed = BUDDY_SPEED;
       buddy_max_change_time = BUDDY_MAX_CHANGE_TIME;
       buddy_min_change_time = BUDDY_MIN_CHANGE_TIME;
+      
+      var bestCount = 0;
+      var bestFriend = 'Nobody';
+      var highFives = 0;
+      var handshakes = 0;
+      var fistBumps = 0;
+      for (var i = 0; i < NAMES.length; i++) {
+	var buddyCount = 0;
+	var d = encounters[NAMES[i]];
+	for (var j = 0; j < buddy_types.length; j++) {
+	  buddyCount += d[buddy_types[j]];
+	}
+	if (buddyCount > bestCount) {
+	  bestCount = buddyCount;
+	  bestFriend = NAMES[i];
+	  highFives = encounters[bestFriend]["hand"];
+	  handshakes = encounters[bestFriend]["shake"];
+	  fistBumps = encounters[bestFriend]["fist"];
+	}
+      }
+      end_message.text = "you died of awkwardness\nbut survived "+totalEncounters.toString()+" total encounters\nbest friend: "+bestFriend+"\n\t\t"+highFives.toString()+" high fives\n\t\t"+handshakes.toString()+" handshakes\n\t\t"+fistBumps.toString()+" fist bumps\nclick anywhere to start over";
+      initializeEncounters();
+      showStopScreen();
+    }
+    
+    function initializeEncounters() {
+      encounters = {};
+      for (var i = 0; i < NAMES.length; i++) {
+	var d = {}
+	for (var j = 0; j < buddy_types.length; j++) {
+	  d[buddy_types[j]] = 0;
+	}
+	encounters[NAMES[i]] = d;
+      }
+      totalEncounters = 0;
     }
     
     function updateStage() {
@@ -450,8 +510,10 @@
       
       var container = new createjs.Container();
       
+      var sprite = SPRITES[Math.round(Math.random() * (SPRITES.length - 1))];
+      
       for (var j = 0; j < buddy_types.length; j++) {
-	var b = drawBuddy(buddy_types[j]);
+	var b = drawBuddy(buddy_types[j], sprite);
 	container.addChildAt(b, j);
       }
       
@@ -466,24 +528,27 @@
       
       var state = randomState();
       
-      buddies[i] = {"container": container, "z": start, "x": randomBuddyStart(), "state": state, "waitCounter": 0, "waitLimit": newBuddyWaitTime(), "name" : name, "encountered": false};
+      
+      
+      buddies[i] = {"container": container, "z": start, "x": randomBuddyStart(), "state": state, "waitCounter": 0, "waitLimit": newBuddyWaitTime(), "name" : name, "encountered": false, "sprite": sprite};
       changeBuddyType(i, state);
     }
     
-    function drawBuddy(type) {
+    function drawBuddy(type, sprite) {
       var b;
+      var folder = "buddies/"+sprite+"/";
       switch(type) {
 	case "open":
-	  b = new createjs.Bitmap("buddy-open.png");
+	  b = new createjs.Bitmap(folder+"buddy-open.png");
 	  break;
 	case "hand":
-	  b = new createjs.Bitmap("buddy-hand.png");
+	  b = new createjs.Bitmap(folder+"buddy-hand.png");
 	  break;
 	case "fist":
-	  b = new createjs.Bitmap("buddy-fist.png");
+	  b = new createjs.Bitmap(folder+"buddy-fist.png");
 	  break;
 	case "shake":
-	  b = new createjs.Bitmap("buddy-shake.png");
+	  b = new createjs.Bitmap(folder+"buddy-shake.png");
 	  break;
       }
       b.x = canvas.width / 2;
