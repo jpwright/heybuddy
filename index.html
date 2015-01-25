@@ -23,18 +23,44 @@
     
     var BUDDY_MIN_CHANGE_TIME = 20; // Frames until buddy can change type
     var BUDDY_MAX_CHANGE_TIME = 100; // Frames until buddy HAS to change type. Actual change time is somewhere in between
+    var BUDDY_ABSOLUTE_MIN_CHANGE_TIME = 5;
     var BUDDY_MIN_CHANGE_Z = 0.7; // Closer than this, the buddy can't change type
     
     var BUDDY_ACCELERATION = 0.00001; // Amount the speed of the buddies increases over time
+    var BUDDY_CHANGE_ACCELERATION = 0.05; // Amount the buddy change times decrease over time
     
     var HAND_ALPHA = 0.9; // Alpha of the player's hand
     
     var NAMETAG_OFFSET = 450; // How high above the center of the buddy the nametag should go
-    var NAMETAG_SIZE = 36; // Font size of name tag in px
+    var NAMETAG_SIZE = 48; // Font size of name tag in px
     
     var HORIZON_PCT = 4/5; // Percentage down the screen the horizon is. Lower num = more crotch
     
     var HITBOX_WIDTH = 150; // Width of bounding box for determining successful encounter
+    
+    var SHAME_INCREMENT = 5;
+    var SHAME_LIMIT = 150;
+    
+    var SHAMEBAR_WIDTH = 50;
+    var SHAMEBAR_HEIGHT = 300;
+    var SHAMEBAR_PADDING = 20;
+    
+    var SHAMEBAR_BG = "#dddddd";
+    var SHAMEBAR_GOOD = "#22ee22";
+    var SHAMEBAR_BAD = "#ee2222";
+    
+    var OVERLAY_BG = "#996666";
+    var OVERLAY_WIDTH = 500;
+    var OVERLAY_HEIGHT = 300;
+    
+    var TITLE_COLOR = "#111111";
+    var TITLE_SIZE = 48;
+    
+    var SUBTITLE_COLOR = "#111111";
+    var SUBTITLE_SIZE = 36;
+    
+    var BUTTON_WIDTH = 160;
+    var BUTTON_HEIGHT = 80;
     
     var KEYCODE_LEFT = 37, 
       KEYCODE_RIGHT = 39,
@@ -45,7 +71,8 @@
       KEYCODE_D = 68,
       KEYCODE_F = 70;
     
-    var NAMES = ["Abby", "Agatha", "Allie", "Andrea", "Becky", "Binyamin", "Buddy", "Chief", "Chill", "Cliff", "Curly", "Delilah", "Diana", "Dinnerbone", "Dr. Feelgood", "Dr. Zizmor", "Edward", "Emily", "Francis", "Grandma", "Grandpa", "Guillermo", "Jake", "James", "Jason", "Jenkins", "Jimothy", "John F.", "John L.", "Jorge", "Junior", "Kenny", "Lobe", "Mesopotamia", "Mr. Smith", "Nina", "Peabody", "Quincent", "Rebecca", "Rex", "Richard", "Saadi", "Sally", "Steven", "Timothy", "Unknown", "Victoria", "Xavier", "Yasmine", "Zachary", "Zadik"];
+    var NAMES = ["Abby", "Agatha", "Allie", "Andrea", "Becky", "Binyamin", "Blobby", "Bobert", "Buddy", "Chad", "Chief", "Chill", "Cliff", "Curly", "Delilah", "Diana", "Dinnerbone", "Dr. Feelgood", "Dr. Zizmor", "Edward", "Emily", "Francis", "Gary",  "Grandma", "Grandpa", "Guillermo", "Hank", "Hester", "Jake", "James", "Jason", "Jenkins", "Jimothy", "Joebuddy", "John F.", "John L.", "Jorge", "Junior", "Kenny", "Lobe", "Mesopotamia", "Miller",  "Missingno", "Mr. Smith", "Nina", "Ol' Sluggish", "Peabody", "Phideaux", "Quincent", "Rebecca", "Rex", "Richard", "Saadi", "Sally", "Shanitha", "Steven", "Timothy", "Twenteen", "Ugly", "Unknown", "Victoria", "Wes", "Xavier", "Yasmine", "Zachary", "Zadik"];
+    
     
     var STATE_NAMES = {"open": "nothing", "hand": "high five", "fist": "fist bump", "shake": "handshake"};
     
@@ -54,10 +81,18 @@
     var fist;
     var buddy;
     var types = ["open", "hand", "fist", "shake"];
+    var buddy_types = ["hand", "fist", "shake"];
+    
+    var playing = false;
+    var overlay_start;
+    var overlay_end;
     
     var message;
+    var st;
     
-    var shamebar;
+    var shame_bg;
+    var shame_good;
+    var shame_bad;
     
     var shamelevel = 0;
     
@@ -74,6 +109,11 @@
       height = canvas.height;
       stage = new createjs.Stage(canvas);
       
+      createStartScreen();
+      showStartScreen();
+      createStopScreen();
+      
+      
       
       for (var i = 0; i < NUM_BUDDIES; i++) {
 	createBuddy(i, (i*BUDDY_SPACING)+BUDDY_CLOSEST);
@@ -89,15 +129,47 @@
       message.y = 0;
       stage.addChild(message);
       
+      st = new createjs.Text("Status: just ok", "20px Arial", "#ff2222");
+      st.x = 0;
+      st.y = 20;
+      stage.addChild(st);
+      
+      shame_bg = new createjs.Shape();
+      shame_bg.graphics.beginFill(SHAMEBAR_BG).drawRect(0, 0, SHAMEBAR_WIDTH, SHAMEBAR_HEIGHT);
+      shame_bg.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
+      shame_bg.y = SHAMEBAR_PADDING;
+      shame_bg.set({alpha: 0.7});
+      stage.addChild(shame_bg);
+      
+      shame_good = new createjs.Shape();
+      shame_good.graphics.beginFill(SHAMEBAR_GOOD).drawRect(0, 0, SHAMEBAR_WIDTH, 1);
+      shame_good.set({alpha: 0.8});
+      stage.addChild(shame_good);
+      
+      shame_bad = new createjs.Shape();
+      shame_bad.graphics.beginFill(SHAMEBAR_BAD).drawRect(0, 0, SHAMEBAR_WIDTH, 1);
+      shame_bad.set({alpha: 0.8});
+      stage.addChild(shame_bad);
+      
+      
+      
+      updateShame();
+      
       updateStage();
       
       stage.on("stagemousemove", function(evt) {
 	for (var i = 0; i < hands.length; i++) {
-	  hands[i].obj.x = evt.stageX - hands[i].obj.getBounds().width/2;
-	  hands[i].obj.y = evt.stageY - hands[i].obj.getBounds().height/2;
+	  hands[i].obj.x = evt.stageX - hands[i].obj.getBounds().width/4;
+	  hands[i].obj.y = evt.stageY - hands[i].obj.getBounds().height/4;
 	  mouseX = evt.stageX;
 	  mouseY = evt.stageY;
 	}
+      });
+      
+      stage.on("stagemouseup", function(evt) {
+	hideStartScreen();
+	hideStopScreen();
+	playing = true;
       });
       
       this.document.onkeydown = keyPressed;
@@ -109,84 +181,220 @@
       createjs.Ticker.setFPS(FPS);
       function tick(evt) {
       
-	BUDDY_SPEED += BUDDY_ACCELERATION;
-      
-	for (var i = 0; i < buddies.length; i++) {
-	  var b = buddies[i];
-	  
-	  // Buddy movement
-	  b.z -= BUDDY_SPEED;
-	  if (b.z < BUDDY_AVOID_START && (b.z > BUDDY_AVOID_END)) {
-	    if (b.x > canvas.width/2) {
-	      b.x += BUDDY_AVOID_RATE * BUDDY_SPEED;
-	    } else {
-	      b.x -= BUDDY_AVOID_RATE * BUDDY_SPEED;
-	    }
-	    moveAllBuddies(b, b.x, b.z);
+	if(playing) {
+	  BUDDY_SPEED += BUDDY_ACCELERATION;
+	  if (BUDDY_MIN_CHANGE_TIME > BUDDY_ABSOLUTE_MIN_CHANGE_TIME) {
+	    BUDDY_MIN_CHANGE_TIME -= BUDDY_CHANGE_ACCELERATION;
+	  }
+	  if (BUDDY_MAX_CHANGE_TIME > BUDDY_ABSOLUTE_MIN_CHANGE_TIME+1) {
+	    BUDDY_MAX_CHANGE_TIME -= BUDDY_CHANGE_ACCELERATION;
+	  }
+	
+	  for (var i = 0; i < buddies.length; i++) {
+	    var b = buddies[i];
 	    
-	    if (b.encountered == false) {
-	      if ((b.state == handPos) && (mouseX >= (b.x - HITBOX_WIDTH)) && (mouseX <= (b.x + HITBOX_WIDTH))) {
-		message.text = "Sweet "+STATE_NAMES[b.state]+" with "+b.name;
+	    // Buddy movement
+	    b.z -= BUDDY_SPEED;
+	    if (b.z < BUDDY_AVOID_START && (b.z > BUDDY_AVOID_END)) {
+	      if (b.x > canvas.width/2) {
+		b.x += BUDDY_AVOID_RATE * BUDDY_SPEED;
 	      } else {
-		message.text = "Awkward moment with "+b.name;
+		b.x -= BUDDY_AVOID_RATE * BUDDY_SPEED;
 	      }
-	      b.encountered = true;
+	      moveAllBuddies(b, b.x, b.z);
+	      
+	      if (b.encountered == false) {
+		if ((b.state == handPos) && (mouseX >= (b.x - HITBOX_WIDTH)) && (mouseX <= (b.x + HITBOX_WIDTH))) {
+		  message.text = "Sweet "+STATE_NAMES[b.state]+" with "+b.name;
+		  if (shamelevel <= SHAME_LIMIT - SHAME_INCREMENT) {
+		    shamelevel += SHAME_INCREMENT;
+		  }
+		} else {
+		  message.text = "Awkward moment with "+b.name;
+		  if (shamelevel >= -1*SHAME_LIMIT + SHAME_INCREMENT) {
+		    shamelevel -= SHAME_INCREMENT;
+		  } else {
+		    youLose();
+		  }
+		}
+		updateStatus();
+		b.encountered = true;
+	      }
+	      
+	    } else if (b.z <= BUDDY_AVOID_END) {
+	      hideAllBuddies(b);
+	      console.log("new buddy!");
+	      createBuddy(i, ((NUM_BUDDIES-1)*BUDDY_SPACING)+BUDDY_CLOSEST);
+	      moveAllBuddies(buddies[i], b.x, b.z);
+	      
+	      
+	      
+	      
+	    } else {
+	      moveAllBuddies(b, b.x, b.z);
 	    }
 	    
-	  } else if (b.z <= BUDDY_AVOID_END) {
-	    hideAllBuddies(b);
-	    console.log("new buddy!");
-	    createBuddy(i, ((NUM_BUDDIES-1)*BUDDY_SPACING)+BUDDY_CLOSEST);
-	    moveAllBuddies(buddies[i], b.x, b.z);
-	    
-	    
-	    
-	    
-	  } else {
-	    moveAllBuddies(b, b.x, b.z);
-	  }
-	  
-	  // Buddy type changing
-	  b.waitCounter += 1;
-	  if ((b.waitCounter > b.waitLimit) && (b.z > BUDDY_MIN_CHANGE_Z)) {
-	    // Reset the counter
-	    b.waitCounter = 0;
-	    // Come up with a new wait time
-	    var newWait = newBuddyWaitTime();
-	    b.waitLimit = newWait;
-	    // Change the buddy to a new random state
-	    
-	    var goodChoice = false;
-	    var newType;
-	    while (!goodChoice) {
-	      var choice = Math.round(Math.random() * types.length);
-	      var newType = types[choice];
-	      if ((newType != b.type) && (newType != "open")) {
-		goodChoice = true;
+	    // Buddy type changing
+	    b.waitCounter += 1;
+	    if ((b.waitCounter > b.waitLimit) && (b.z > BUDDY_MIN_CHANGE_Z)) {
+	      // Reset the counter
+	      b.waitCounter = 0;
+	      // Come up with a new wait time
+	      var newWait = newBuddyWaitTime();
+	      b.waitLimit = newWait;
+	      // Change the buddy to a new random state
+	      
+	      var goodChoice = false;
+	      var newType;
+	      while (!goodChoice) {
+		var choice = Math.round(Math.random() * buddy_types.length);
+		var newType = buddy_types[choice];
+		if (newType != b.type) {
+		  goodChoice = true;
+		}
 	      }
+	      changeBuddyType(i, newType);
 	    }
-	    changeBuddyType(i, newType);
+	    
+	    updateShame();
+	    
 	  }
-	  
+      
 	}
       
 	updateStage();
 	var fps = document.getElementById('fps');
 	fps.innerHTML = createjs.Ticker.getMeasuredFPS();
-      
       }
 
 
+    }
+    
+    function createStartScreen() {
+      overlay_start = new createjs.Container();
+      var overlay_start_rect = new createjs.Shape();
+      overlay_start_rect.graphics.beginFill(OVERLAY_BG).drawRoundRect(canvas.width/2 - OVERLAY_WIDTH/2, canvas.height/2 - OVERLAY_HEIGHT/2, OVERLAY_WIDTH, OVERLAY_HEIGHT, 10);
+      overlay_start_rect.set({alpha: 0.8});
+      overlay_start.addChild(overlay_start_rect);
+      
+      var title = new createjs.Text("Hey... Buddy", TITLE_SIZE.toString()+"px Arial", TITLE_COLOR);
+      title.x = canvas.width/2 - title.getBounds().width/2;
+      title.y = canvas.height/2 - title.getBounds().height/2 - 80;
+      overlay_start.addChild(title);
+      
+      
+      
+      var start = new createjs.Text("a game about encounters\nclick anywhere to start", SUBTITLE_SIZE.toString()+"px Arial", SUBTITLE_COLOR);
+      start.x = canvas.width/2 - start.getBounds().width/2;
+      start.y = canvas.height/2 - start.getBounds().height/2 + 80;
+      overlay_start.addChild(start);
+      
+      overlay_start.visible = false;
+      
+      stage.addChild(overlay_start);
+    }
+    
+    function createStopScreen() {
+      overlay_stop = new createjs.Container();
+      var overlay_stop_rect = new createjs.Shape();
+      overlay_stop_rect.graphics.beginFill(OVERLAY_BG).drawRoundRect(canvas.width/2 - OVERLAY_WIDTH/2, canvas.height/2 - OVERLAY_HEIGHT/2, OVERLAY_WIDTH, OVERLAY_HEIGHT, 10);
+      overlay_stop_rect.set({alpha: 0.8});
+      overlay_stop.addChild(overlay_stop_rect);
+      
+      var title = new createjs.Text("You Lose", TITLE_SIZE.toString()+"px Arial", TITLE_COLOR);
+      title.x = canvas.width/2 - title.getBounds().width/2;
+      title.y = canvas.height/2 - title.getBounds().height/2 - 80;
+      overlay_stop.addChild(title);
+      
+      
+      
+      var start = new createjs.Text("you died of awkwardness\nclick anywhere to try again", SUBTITLE_SIZE.toString()+"px Arial", SUBTITLE_COLOR);
+      start.x = canvas.width/2 - start.getBounds().width/2;
+      start.y = canvas.height/2 - start.getBounds().height/2 + 80;
+      overlay_stop.addChild(start);
+      
+      overlay_stop.visible = false;
+      
+      stage.addChild(overlay_stop);
+    }
+    
+    function hideStartScreen() {
+      overlay_start.visible = false;
+    }
+    
+    function showStartScreen() {
+      overlay_start.visible = true;
+    }
+    
+    function hideStopScreen() {
+      overlay_stop.visible = false;
+    }
+    
+    function showStopScreen() {
+      overlay_stop.visible = true;
+    }
+    
+    function youLose() {
+      showStopScreen();
+      playing = false;
     }
     
     function updateStage() {
       stage.update();
     }
     
+    function updateShame() {
+      if (shamelevel > 0) {
+	shame_good.scaleY = shamelevel;
+	shame_good.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
+	shame_good.y = SHAMEBAR_PADDING + (SHAMEBAR_HEIGHT/2) - shamelevel;
+	shame_bad.scaleY = 0;
+	shame_bad.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
+	shame_bad.y = SHAMEBAR_PADDING + (SHAMEBAR_HEIGHT/2);
+      } else {
+	shame_good.scaleY = 0;
+	shame_good.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
+	shame_good.y = SHAMEBAR_PADDING + (SHAMEBAR_HEIGHT/2) - 0;
+	shame_bad.scaleY = -1*shamelevel;
+	shame_bad.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
+	shame_bad.y = SHAMEBAR_PADDING + (SHAMEBAR_HEIGHT/2);
+      }
+    }
+    
+    function updateStatus() {
+    
+      if ((shamelevel >= 0) && (shamelevel < 10)) {
+	st.text = "Status: just ok";
+      } else if ((shamelevel >= 10) && (shamelevel < 30)) {
+	st.text = "Status: pretty cool";
+      } else if ((shamelevel >= 30) && (shamelevel < 55)) {
+	st.text = "Status: hip with it";
+      } else if ((shamelevel >= 55) && (shamelevel < 80)) {
+	st.text = "Status: da bomb";
+	
+      } else if ((shamelevel >= -10) && (shamelevel < 0)) {
+	st.text = "Status: kinda meh";
+      } else if ((shamelevel >= -20) && (shamelevel < -10)) {
+	st.text = "Status: not feeling it";
+      } else if ((shamelevel >= -40) && (shamelevel < -20)) {
+	st.text = "Status: can I go home?";
+      } else if ((shamelevel >= -75) && (shamelevel < -40)) {
+	st.text = "Status: this is all my fault";
+      } else if ((shamelevel >= -75) && (shamelevel < -120)) {
+	st.text = "Status: sever all ties";
+	
+      } else {
+	st.text = "Status: off the charts";
+      }
+    
+    }
+    
     function createHand(type) {
       h = drawHand(type);
       h.x = canvas.width / 2;
       h.y = canvas.height / 2;
+      h.scaleX = 0.5;
+      h.scaleY = 0.5;
       stage.addChild(h);
       d = {"type": type, "obj": h};
       return d;
@@ -217,8 +425,8 @@
     }
     
     function randomState() {
-      var choice = Math.round(Math.random() * types.length-1);
-      return types[choice];
+      var choice = Math.round(Math.random() * buddy_types.length-1);
+      return buddy_types[choice];
     }
     
     function createBuddy(i, start) {
@@ -226,8 +434,8 @@
       
       var container = new createjs.Container();
       
-      for (var j = 0; j < types.length; j++) {
-	var b = drawBuddy(types[j]);
+      for (var j = 0; j < buddy_types.length; j++) {
+	var b = drawBuddy(buddy_types[j]);
 	container.addChildAt(b, j);
       }
       
@@ -236,7 +444,7 @@
       var n = new createjs.Text(name, NAMETAG_SIZE.toString()+"px Arial", "#ff2222");
       n.x = -100;
       n.y = -100;
-      container.addChildAt(n, types.length);
+      container.addChildAt(n, buddy_types.length);
       
       stage.addChildAt(container, 0);
       
@@ -286,7 +494,7 @@
     }*/
     
     function moveAllBuddies(d, x, z) {
-      for (var j = 0; j < types.length; j++) {
+      for (var j = 0; j < buddy_types.length; j++) {
 	var b = d.container.getChildAt(j);
 	moveBuddy(b, x, z);
       }
@@ -296,7 +504,7 @@
     function moveName(d, x, z) {
       //console.log(d.name);
       
-      var n = d.container.getChildAt(types.length);
+      var n = d.container.getChildAt(buddy_types.length);
       var bounds = n.getBounds();
       n.scaleX = 1/z;
       n.scaleY = 1/z;
@@ -325,9 +533,9 @@
     function changeBuddyType(i, type) {
       var d = buddies[i];
       d.state = type;
-      for (var j = 0; j < types.length; j++) {
+      for (var j = 0; j < buddy_types.length; j++) {
 	var b = d.container.getChildAt(j);
-	if (types[j] != type) {
+	if (buddy_types[j] != type) {
 	  hideBuddy(b);
 	} else {
 	  showBuddy(b);
@@ -336,7 +544,7 @@
     }
     
     function hideAllBuddies(d) {
-      for (var j = 0; j < types.length+1; j++) {
+      for (var j = 0; j < buddy_types.length+1; j++) {
 	var b = d.container.getChildAt(j);
 	hideBuddy(b);
       }
