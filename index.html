@@ -14,6 +14,9 @@
     
     var NUM_BUDDIES = 100; // How many buddies are on the screen at any given time
     var BUDDY_SPEED = 0.01; // How fast the buddies walk towards you
+    
+    var buddy_speed = BUDDY_SPEED;
+    
     var BUDDY_AVOID_RATE = 2000; // The rate at which a buddy moves to avoid the player, as a coefficient to buddy speed
     var BUDDY_AVOID_START = 0.8; // The distance at which a buddy starts to avoid (move left or right)
     var BUDDY_AVOID_END = 0.4; // The distance at which a buddy disappears.
@@ -23,11 +26,15 @@
     
     var BUDDY_MIN_CHANGE_TIME = 20; // Frames until buddy can change type
     var BUDDY_MAX_CHANGE_TIME = 100; // Frames until buddy HAS to change type. Actual change time is somewhere in between
+    
+    var buddy_min_change_time = BUDDY_MIN_CHANGE_TIME;
+    var buddy_max_change_time = BUDDY_MAX_CHANGE_TIME;
+    
     var BUDDY_ABSOLUTE_MIN_CHANGE_TIME = 5;
     var BUDDY_MIN_CHANGE_Z = 0.7; // Closer than this, the buddy can't change type
     
     var BUDDY_ACCELERATION = 0.00001; // Amount the speed of the buddies increases over time
-    var BUDDY_CHANGE_ACCELERATION = 0.05; // Amount the buddy change times decrease over time
+    var BUDDY_CHANGE_ACCELERATION = 0.01; // Amount the buddy change times decrease over time
     
     var HAND_ALPHA = 0.9; // Alpha of the player's hand
     
@@ -115,9 +122,7 @@
       
       
       
-      for (var i = 0; i < NUM_BUDDIES; i++) {
-	createBuddy(i, (i*BUDDY_SPACING)+BUDDY_CLOSEST);
-      }
+      generateNewBuddies();
       
       for (var j = 0; j < types.length; j++) {
 	hands[j] = createHand(types[j]);
@@ -182,19 +187,19 @@
       function tick(evt) {
       
 	if(playing) {
-	  BUDDY_SPEED += BUDDY_ACCELERATION;
-	  if (BUDDY_MIN_CHANGE_TIME > BUDDY_ABSOLUTE_MIN_CHANGE_TIME) {
-	    BUDDY_MIN_CHANGE_TIME -= BUDDY_CHANGE_ACCELERATION;
+	  buddy_speed += BUDDY_ACCELERATION;
+	  if (buddy_min_change_time > BUDDY_ABSOLUTE_MIN_CHANGE_TIME) {
+	    buddy_min_change_time -= BUDDY_CHANGE_ACCELERATION;
 	  }
-	  if (BUDDY_MAX_CHANGE_TIME > BUDDY_ABSOLUTE_MIN_CHANGE_TIME+1) {
-	    BUDDY_MAX_CHANGE_TIME -= BUDDY_CHANGE_ACCELERATION;
+	  if (buddy_max_change_time > BUDDY_ABSOLUTE_MIN_CHANGE_TIME+1) {
+	    buddy_max_change_time -= BUDDY_CHANGE_ACCELERATION;
 	  }
 	
 	  for (var i = 0; i < buddies.length; i++) {
 	    var b = buddies[i];
 	    
 	    // Buddy movement
-	    b.z -= BUDDY_SPEED;
+	    b.z -= buddy_speed;
 	    if (b.z < BUDDY_AVOID_START && (b.z > BUDDY_AVOID_END)) {
 	      if (b.x > canvas.width/2) {
 		b.x += BUDDY_AVOID_RATE * BUDDY_SPEED;
@@ -337,6 +342,10 @@
     function youLose() {
       showStopScreen();
       playing = false;
+      generateNewBuddies();
+      buddy_speed = BUDDY_SPEED;
+      buddy_max_change_time = BUDDY_MAX_CHANGE_TIME;
+      buddy_min_change_time = BUDDY_MIN_CHANGE_TIME;
     }
     
     function updateStage() {
@@ -418,6 +427,12 @@
       }      
       h.set({alpha: HAND_ALPHA});
       return h;
+    }
+    
+    function generateNewBuddies() {
+      for (var i = 0; i < NUM_BUDDIES; i++) {
+	createBuddy(i, (i*BUDDY_SPACING)+BUDDY_CLOSEST);
+      }
     }
     
     function randomBuddyStart() {
