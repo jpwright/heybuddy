@@ -81,7 +81,7 @@
     
     var NAMES = ["Abby", "Agatha", "Allie", "Andrea", "Becky", "Binyamin", "Blobby", "Bobert", "Buddy", "Chad", "Chief", "Chili", "Cliff", "Curly", "Delilah", "Diana", "Dinnerbone", "Dr. Feelgood", "Dr. Zizmor", "Edward", "Emily", "Francis", "Gary",  "Grandma", "Grandpa", "Guillermo", "Hank", "Hester", "Jake", "James", "Jason", "Jenkins", "Jimothy", "Joebuddy", "John F.", "John L.", "Jorge", "Junior", "Kenny", "Lobe", "Mesopotamia", "Miller",  "Missingno", "Mr. Smith", "Nina", "Ol' Sluggish", "Peabody", "Phideaux", "Quincent", "Rebecca", "Rex", "Richard", "Saadi", "Sally", "Shanitha", "Steven", "Timothy", "Twenteen", "Ugly", "Unknown", "Victoria", "Wes", "Xavier", "Yasmine", "Zachary", "Zadik"];
     
-    var SPRITES = ["1", "2"]; // All the folder names within /buddies
+    var SPRITES = ["1", "2", "3"]; // All the folder names within /buddies
     
     
     var STATE_NAMES = {"open": "nothing", "hand": "high five", "fist": "fist bump", "shake": "handshake"};
@@ -102,6 +102,8 @@
     var overlay_end;
     var end_message;
     
+    var tickOnce;
+    
     var message;
     var st;
     
@@ -117,6 +119,8 @@
     var buddies = []; // Array holding all the buddy objects.
    
     var handPos;
+    
+    var audio = new Audio('heybuddytheme.mp3');
     
     function init() {
       canvas = document.getElementById('game');
@@ -186,17 +190,27 @@
 	}
       });
       
+      tickOnce = true;
+      
       stage.on("stagemouseup", function(evt) {
 	hideStartScreen();
 	hideStopScreen();
+	if (playing == false) {
+	  audio.play();
+	  audio.addEventListener('ended', function() {
+	      this.currentTime = 0;
+	      this.play();
+	  }, false);
+	}
 	playing = true;
 	if (lost == true) {
 	  lost = false;
 	  for (var i = 0; i < buddies.length; i++) {
 	    var b = buddies[i];
 	    hideAllBuddies(b);
-	    generateNewBuddies();
 	  }
+	  shamelevel = 0;
+	  generateNewBuddies();
 	}
       });
       
@@ -208,8 +222,9 @@
       createjs.Ticker.addEventListener("tick", tick);
       createjs.Ticker.setFPS(FPS);
       function tick(evt) {
-      
-	if(playing) {
+	
+	if(playing || tickOnce) {
+	  tickOnce = false;
 	  buddy_speed += BUDDY_ACCELERATION;
 	  if (buddy_min_change_time > BUDDY_ABSOLUTE_MIN_CHANGE_TIME) {
 	    buddy_min_change_time -= BUDDY_CHANGE_ACCELERATION;
@@ -673,6 +688,7 @@
     <canvas id="game" width="800" height="600"></canvas>
     <br />
     <span id="fps-container"><span id="fps">Loading</span> FPS</span>
+    
   </body>
 </html>
       
