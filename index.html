@@ -121,12 +121,19 @@
     var handPos;
     
     var audio = new Audio('heybuddytheme.mp3');
+    var audio_yes = new Audio('yes.mp3');
+    var audio_no = new Audio('no.mp3');
     
     function init() {
       canvas = document.getElementById('game');
       width = canvas.width;
       height = canvas.height;
       stage = new createjs.Stage(canvas);
+      
+      var background = new createjs.Bitmap("background.jpg");
+      background.y = 180;
+      
+      stage.addChild(background);
       
       createStartScreen();
       showStartScreen();
@@ -249,12 +256,14 @@
 	      if (b.encountered == false) {
 		if ((b.state == handPos) && (mouseX >= (b.x - HITBOX_WIDTH)) && (mouseX <= (b.x + HITBOX_WIDTH))) {
 		  message.text = "Sweet "+STATE_NAMES[b.state]+" with "+b.name;
+		  audio_yes.play();
 		  if (shamelevel <= SHAME_LIMIT - SHAME_INCREMENT) {
 		    shamelevel += SHAME_INCREMENT;
 		  }
 		  encounters[b.name][b.state] += 1;
 		} else {
 		  message.text = "Awkward moment with "+b.name;
+		  audio_no.play();
 		  if (shamelevel >= -1*SHAME_LIMIT + SHAME_INCREMENT) {
 		    shamelevel -= SHAME_INCREMENT;
 		    //encounters[b.name][b.state] -= 1;
@@ -330,7 +339,7 @@
       
       
       
-      var start = new createjs.Text("a game about encounters\nclick anywhere to start", SUBTITLE_SIZE.toString()+"px Patrick Hand SC", SUBTITLE_COLOR);
+      var start = new createjs.Text("a game about encounters\npress and hold A, S, or D to greet\nclick anywhere to start", SUBTITLE_SIZE.toString()+"px Patrick Hand SC", SUBTITLE_COLOR);
       start.x = canvas.width/2 - start.getBounds().width/2;
       start.y = canvas.height/2 - start.getBounds().height/2 + 80;
       overlay_start.addChild(start);
@@ -539,7 +548,7 @@
       n.y = -100;
       container.addChildAt(n, buddy_types.length);
       
-      stage.addChildAt(container, 0);
+      stage.addChildAt(container, 2);
       
       var state = randomState();
       
