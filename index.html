@@ -130,14 +130,14 @@
       }
       changeHand("open");
       
-      message = new createjs.Text("Hey Buddy!", "20px Fredoka One", "#ff2222");
-      message.x = 0;
+      message = new createjs.Text("Hey Buddy!", "40px Fredoka One", "#000000");
+      message.x = 5;
       message.y = 0;
       stage.addChild(message);
       
-      st = new createjs.Text("Status: just ok", "20px Patrick Hand SC", "#ff2222");
-      st.x = 0;
-      st.y = 20;
+      st = new createjs.Text("Status: just ok", "20px Patrick Hand SC", "#000000");
+      st.x = 5;
+      st.y = 45;
       stage.addChild(st);
       
       shame_bg = new createjs.Shape();
@@ -457,7 +457,7 @@
       
       var name = NAMES[Math.round(Math.random() * (NAMES.length - 1))];
       
-      var n = new createjs.Text(name, NAMETAG_SIZE.toString()+"px Patrick Hand SC", "#ff2222");
+      var n = new createjs.Text(name, NAMETAG_SIZE.toString()+"px Patrick Hand SC", "#000000");
       n.x = -100;
       n.y = -100;
       container.addChildAt(n, buddy_types.length);
