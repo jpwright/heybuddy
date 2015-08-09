@@ -1,736 +1,800 @@
+
 <!DOCTYPE HTML>
 <html>
-  <head>
+
+<head>
     <link rel="stylesheet" type="text/css" href="style.css">
     <link href='http://fonts.googleapis.com/css?family=Patrick+Hand+SC|Fredoka+One' rel='stylesheet' type='text/css'>
     <script type="text/javascript" src="jquery-1.11.2.min.js"></script>
     <script src="https://code.createjs.com/easeljs-0.8.0.min.js"></script>
     <script src="https://code.createjs.com/tweenjs-0.6.0.min.js"></script>
     <script type="text/javascript">
+        var canvas;
+        var stage;
 
-    var canvas;
-    var stage;
-    
-    var FPS = 24; // Game FPS
-    
-    var NUM_BUDDIES = 20; // How many buddies are on the screen at any given time
-    var BUDDY_SPEED = 0.01; // How fast the buddies walk towards you
-    
-    var buddy_speed = BUDDY_SPEED;
-    
-    var BUDDY_AVOID_RATE = 2000; // The rate at which a buddy moves to avoid the player, as a coefficient to buddy speed
-    var BUDDY_AVOID_START = 0.8; // The distance at which a buddy starts to avoid (move left or right)
-    var BUDDY_AVOID_END = 0.4; // The distance at which a buddy disappears.
-    var BUDDY_PADDING = 1/6; // How far away from the edges of the screen the buddies should start
-    var BUDDY_SPACING = 2; // How far away the buddies should be from eachother
-    var BUDDY_CLOSEST = 3; // How close the very first buddy should start at
-    
-    var BUDDY_MIN_CHANGE_TIME = 20; // Frames until buddy can change type
-    var BUDDY_MAX_CHANGE_TIME = 100; // Frames until buddy HAS to change type. Actual change time is somewhere in between
-    
-    var buddy_min_change_time = BUDDY_MIN_CHANGE_TIME;
-    var buddy_max_change_time = BUDDY_MAX_CHANGE_TIME;
-    
-    var BUDDY_ABSOLUTE_MIN_CHANGE_TIME = 5;
-    var BUDDY_MIN_CHANGE_Z = 0.7; // Closer than this, the buddy can't change type
-    
-    var BUDDY_ACCELERATION = 0.00002; // Amount the speed of the buddies increases over time
-    var BUDDY_CHANGE_ACCELERATION = 0.01; // Amount the buddy change times decrease over time
-    
-    var HAND_ALPHA = 0.9; // Alpha of the player's hand
-    
-    var NAMETAG_OFFSET = 450; // How high above the center of the buddy the nametag should go
-    var NAMETAG_SIZE = 48; // Font size of name tag in px
-    
-    var HORIZON_PCT = 4/5; // Percentage down the screen the horizon is. Lower num = more crotch
-    
-    var HITBOX_WIDTH = 150; // Width of bounding box for determining successful encounter
-    
-    var SHAME_INCREMENT = 20;
-    var SHAME_LIMIT = 150;
-    
-    var SHAMEBAR_WIDTH = 50;
-    var SHAMEBAR_HEIGHT = 280;
-    var SHAMEBAR_PADDING = 20;
-    
-    var SHAMEBAR_BG = "#dddddd";
-    var SHAMEBAR_GOOD = "#22ee22";
-    var SHAMEBAR_BAD = "#ee2222";
-    
-    var OVERLAY_BG = "#996666";
-    var OVERLAY_WIDTH = 500;
-    var OVERLAY_HEIGHT = 300;
-    
-    var TITLE_COLOR = "#111111";
-    var TITLE_SIZE = 48;
-    
-    var SUBTITLE_COLOR = "#111111";
-    var SUBTITLE_SIZE = 20;
-    
-    var BUTTON_WIDTH = 160;
-    var BUTTON_HEIGHT = 80;
-    
-    var KEYCODE_LEFT = 37, 
-      KEYCODE_RIGHT = 39,
-      KEYCODE_UP = 38, 
-      KEYCODE_DOWN = 40,
-      KEYCODE_A = 65,
-      KEYCODE_S = 83,
-      KEYCODE_D = 68,
-      KEYCODE_F = 70;
-    
-    var NAMES = ["Abby", "Agatha", "Allie", "Andrea", "Becky", "Binyamin", "Blobby", "Bobert", "Buddy", "Chad", "Chief", "Chili", "Cliff", "Curly", "Delilah", "Diana", "Dinnerbone", "Dr. Feelgood", "Dr. Zizmor", "Edward", "Emily", "Francis", "Gary",  "Grandma", "Grandpa", "Guillermo", "Hank", "Hester", "Jake", "James", "Jason", "Jenkins", "Jimothy", "Joebuddy", "John F.", "John L.", "Jorge", "Junior", "Kenny", "Lobe", "Mesopotamia", "Miller",  "Missingno", "Mr. Smith", "Nina", "Ol' Sluggish", "Peabody", "Phideaux", "Quincent", "Rebecca", "Rex", "Richard", "Saadi", "Sally", "Shanitha", "Steven", "Timothy", "Twenteen", "Ugly", "Unknown", "Victoria", "Wes", "Xavier", "Yasmine", "Zachary", "Zadik"];
-    
-    var SPRITES = ["1", "2", "3", "4"]; // All the folder names within /buddies
-    var HAND_SPRITES = ["1", "2", "3"];
-    
-    var STATE_NAMES = {"open": "nothing", "hand": "high five", "fist": "fist bump", "shake": "handshake"};
-    
-    var encounters = {};
-    var totalEncounters = 0;
-    
-    var hands = [];
-    var hand;
-    var fist;
-    var buddy;
-    var types = ["open", "hand", "fist", "shake"];
-    var buddy_types = ["hand", "fist", "shake"];
-    
-    var playing = false;
-    var lost = false;
-    var overlay_start;
-    var overlay_end;
-    var end_message;
-    
-    var tickOnce;
-    
-    var message;
-    var st;
-    
-    var shame_bg;
-    var shame_good;
-    var shame_bad;
-    
-    var shamelevel = 0;
-    
-    var mouseX;
-    var mouseY;
-   
-    var buddies = []; // Array holding all the buddy objects.
-   
-    var handPos;
-    
-    var audio = new Audio('heybuddytheme.mp3');
-    var audio_yes = new Audio('yes.mp3');
-    var audio_no = new Audio('no.mp3');
-    
-    function init() {
-      canvas = document.getElementById('game');
-      width = canvas.width;
-      height = canvas.height;
-      stage = new createjs.Stage(canvas);
-      
-      var background = new createjs.Bitmap("background.jpg");
-      background.y = -430;
-      
-      stage.addChild(background);
-      
-      createStartScreen();
-      showStartScreen();
-      createStopScreen();
-      
-      initializeEncounters();
-      
-      generateNewBuddies();
-      
-      var handSprite = HAND_SPRITES[Math.round(Math.random() * (HAND_SPRITES.length - 1))]; 
-      for (var j = 0; j < types.length; j++) {
-	hands[j] = createHand(types[j], handSprite);
-      }
-      changeHand("open");
-      
-      message = new createjs.Text("Hey Buddy!", "40px Fredoka One", "#000000");
-      message.x = 5;
-      message.y = 0;
-      stage.addChild(message);
-      
-      st = new createjs.Text("Status: just ok", "20px Patrick Hand SC", "#000000");
-      st.x = 5;
-      st.y = 45;
-      stage.addChild(st);
-      
-      shame_bg = new createjs.Shape();
-      shame_bg.graphics.beginFill(SHAMEBAR_BG).drawRect(0, 0, SHAMEBAR_WIDTH, SHAMEBAR_HEIGHT);
-      shame_bg.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
-      shame_bg.y = SHAMEBAR_PADDING;
-      shame_bg.set({alpha: 0.7});
-      stage.addChild(shame_bg);
-      
-      var shame_line = new createjs.Shape();
-      shame_line.graphics.beginFill("#000000").drawRect(canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH, SHAMEBAR_PADDING + SHAMEBAR_HEIGHT/2, SHAMEBAR_WIDTH, 1);
-      shame_line.set({alpha: 0.8});
-      stage.addChild(shame_line);
-      
-      shame_good = new createjs.Shape();
-      shame_good.graphics.beginFill(SHAMEBAR_GOOD).drawRect(0, 0, SHAMEBAR_WIDTH, 1);
-      shame_good.set({alpha: 0.8});
-      stage.addChild(shame_good);
-      
-      shame_bad = new createjs.Shape();
-      shame_bad.graphics.beginFill(SHAMEBAR_BAD).drawRect(0, 0, SHAMEBAR_WIDTH, 1);
-      shame_bad.set({alpha: 0.8});
-      stage.addChild(shame_bad);
-      
-      
-      
-      updateShame();
-      
-      updateStage();
-      
-      stage.on("stagemousemove", function(evt) {
-	for (var i = 0; i < hands.length; i++) {
-	  hands[i].obj.x = evt.stageX - hands[i].obj.getBounds().width/4;
-	  hands[i].obj.y = evt.stageY - hands[i].obj.getBounds().height/4;
-	  mouseX = evt.stageX;
-	  mouseY = evt.stageY;
-	}
-      });
-      
-      //tickOnce = true;
-      
-      stage.on("stagemouseup", function(evt) {
-	hideStartScreen();
-	hideStopScreen();
-	if (playing == false) {
-	  audio.play();
-	  audio.addEventListener('ended', function() {
-	      this.currentTime = 0;
-	      this.play();
-	  }, false);
-	}
-	playing = true;
-	if (lost == true) {
-	  lost = false;
-	  for (var i = 0; i < buddies.length; i++) {
-	    var b = buddies[i];
-	    hideAllBuddies(b);
-	  }
-	  shamelevel = 0;
-	  message.text = "Hey Buddy!";
-	  updateStatus();
-	  generateNewBuddies();
-	}
-      });
-      
-      this.document.onkeydown = keyPressed;
-      this.document.onkeyup = function() {
-	changeHand("open");
-      };
-      
-      createjs.Ticker.addEventListener("tick", tick);
-      createjs.Ticker.setFPS(FPS);
-      function tick(evt) {
-	
-	if(playing || tickOnce) {
-	  tickOnce = false;
-	  buddy_speed += BUDDY_ACCELERATION;
-	  if (buddy_min_change_time > BUDDY_ABSOLUTE_MIN_CHANGE_TIME) {
-	    buddy_min_change_time -= BUDDY_CHANGE_ACCELERATION;
-	  }
-	  if (buddy_max_change_time > BUDDY_ABSOLUTE_MIN_CHANGE_TIME+1) {
-	    buddy_max_change_time -= BUDDY_CHANGE_ACCELERATION;
-	  }
-	
-	  for (var i = 0; i < buddies.length; i++) {
-	    var b = buddies[i];
-	    
-	    // Buddy movement
-	    b.z -= buddy_speed;
-	    if (b.z < BUDDY_AVOID_START && (b.z > BUDDY_AVOID_END)) {
-	      if (b.x > canvas.width/2) {
-		b.x += BUDDY_AVOID_RATE * BUDDY_SPEED;
-	      } else {
-		b.x -= BUDDY_AVOID_RATE * BUDDY_SPEED;
-	      }
-	      moveAllBuddies(b, b.x, b.z);
-	      
-	      if (b.encountered == false) {
-		if ((b.state == handPos) && (mouseX >= (b.x - HITBOX_WIDTH)) && (mouseX <= (b.x + HITBOX_WIDTH))) {
-		  message.text = "Sweet "+STATE_NAMES[b.state]+" with "+b.name;
-		  audio_yes.currentTime = 0;
-		  audio_yes.play();
-		  if (shamelevel <= SHAME_LIMIT - SHAME_INCREMENT) {
-		    shamelevel += SHAME_INCREMENT;
-		  }
-		  encounters[b.name][b.state] += 1;
-		} else {
-		  message.text = "Awkward moment with "+b.name;
-		  audio_no.currentTime = 0;
-		  audio_no.play();
-		  if (shamelevel >= -1*SHAME_LIMIT + SHAME_INCREMENT) {
-		    shamelevel -= SHAME_INCREMENT;
-		    //encounters[b.name][b.state] -= 1;
-		  } else {
-		    youLose();
-		  }
-		}
-		updateStatus();
-		totalEncounters += 1;
-		b.encountered = true;
-	      }
-	      
-	    } else if (b.z <= BUDDY_AVOID_END) {
-	      hideAllBuddies(b);
-	      console.log("new buddy!");
-	      createBuddy(i, ((NUM_BUDDIES-1)*BUDDY_SPACING)+BUDDY_CLOSEST);
-	      moveAllBuddies(buddies[i], b.x, b.z);
-	      
-	      
-	      
-	      
-	    } else {
-	      moveAllBuddies(b, b.x, b.z);
-	    }
-	    
-	    // Buddy type changing
-	    b.waitCounter += 1;
-	    if ((b.waitCounter > b.waitLimit) && (b.z > BUDDY_MIN_CHANGE_Z)) {
-	      // Reset the counter
-	      b.waitCounter = 0;
-	      // Come up with a new wait time
-	      var newWait = newBuddyWaitTime();
-	      b.waitLimit = newWait;
-	      // Change the buddy to a new random state
-	      
-	      var goodChoice = false;
-	      var newType;
-	      while (!goodChoice) {
-		var choice = Math.round(Math.random() * buddy_types.length);
-		var newType = buddy_types[choice];
-		if (newType != b.type) {
-		  goodChoice = true;
-		}
-	      }
-	      changeBuddyType(i, newType);
-	    }
-	    
-	    updateShame();
-	    
-	  }
-      
-	}
-      
-	updateStage();
-	var fps = document.getElementById('fps');
-	fps.innerHTML = createjs.Ticker.getMeasuredFPS();
-      }
+        /*var ACTUAL_WIDTH = 800; 
+        var ACTUAL_HEIGHT = 600;
+        var ASPECT_RATIO = 4/3; 
+
+        window.addEventListener('resize', resize, false); */
+
+        var FPS = 24; // Game FPS
+
+        var NUM_BUDDIES = 20; // How many buddies are on the screen at any given time
+        var BUDDY_SPEED = 0.01; // How fast the buddies walk towards you
+
+        var buddy_speed = BUDDY_SPEED;
+
+        var BUDDY_AVOID_RATE = 2000; // The rate at which a buddy moves to avoid the player, as a coefficient to buddy speed
+        var BUDDY_AVOID_START = 0.8; // The distance at which a buddy starts to avoid (move left or right)
+        var BUDDY_AVOID_END = 0.4; // The distance at which a buddy disappears.
+        var BUDDY_PADDING = 1 / 6; // How far away from the edges of the screen the buddies should start
+        var BUDDY_SPACING = 2; // How far away the buddies should be from eachother
+        var BUDDY_CLOSEST = 3; // How close the very first buddy should start at
+
+        var BUDDY_MIN_CHANGE_TIME = 20; // Frames until buddy can change type
+        var BUDDY_MAX_CHANGE_TIME = 100; // Frames until buddy HAS to change type. Actual change time is somewhere in between
+
+        var buddy_min_change_time = BUDDY_MIN_CHANGE_TIME;
+        var buddy_max_change_time = BUDDY_MAX_CHANGE_TIME;
+
+        var BUDDY_ABSOLUTE_MIN_CHANGE_TIME = 5;
+        var BUDDY_MIN_CHANGE_Z = 0.7; // Closer than this, the buddy can't change type
+
+        var BUDDY_ACCELERATION = 0.00002; // Amount the speed of the buddies increases over time
+        var BUDDY_CHANGE_ACCELERATION = 0.01; // Amount the buddy change times decrease over time
+
+        var HAND_ALPHA = 0.9; // Alpha of the player's hand
+
+        var NAMETAG_OFFSET = 450; // How high above the center of the buddy the nametag should go
+        var NAMETAG_SIZE = 48; // Font size of name tag in px
+
+        var HORIZON_PCT = 4 / 5; // Percentage down the screen the horizon is. Lower num = more crotch
+
+        var HITBOX_WIDTH = 150; // Width of bounding box for determining successful encounter
+
+        var SHAME_INCREMENT = 20;
+        var SHAME_LIMIT = 150;
+
+        var SHAMEBAR_WIDTH = 50;
+        var SHAMEBAR_HEIGHT = 280;
+        var SHAMEBAR_PADDING = 20;
+
+        var SHAMEBAR_BG = "#dddddd";
+        var SHAMEBAR_GOOD = "#22ee22";
+        var SHAMEBAR_BAD = "#ee2222";
+
+        var OVERLAY_BG = "#996666";
+        var OVERLAY_WIDTH = 500;
+        var OVERLAY_HEIGHT = 300;
+
+        var TITLE_COLOR = "#111111";
+        var TITLE_SIZE = 48;
+
+        var SUBTITLE_COLOR = "#111111";
+        var SUBTITLE_SIZE = 20;
+
+        var BUTTON_WIDTH = 160;
+        var BUTTON_HEIGHT = 80;
+
+        var KEYCODE_LEFT = 37,
+            KEYCODE_RIGHT = 39,
+            KEYCODE_UP = 38,
+            KEYCODE_DOWN = 40,
+            KEYCODE_A = 65,
+            KEYCODE_S = 83,
+            KEYCODE_D = 68,
+            KEYCODE_F = 70;
+
+        var NAMES = ["Abby", "Agatha", "Allie", "Andrea", "Becky", "Binyamin", "Blobby", "Bobert", "Buddy", "Chad", "Chief", "Chili", "Cliff", "Curly", "Delilah", "Diana", "Dinnerbone", "Dr. Feelgood", "Dr. Zizmor", "Edward", "Emily", "Francis", "Gary", "Grandma", "Grandpa", "Guillermo", "Hank", "Hester", "Jake", "James", "Jason", "Jenkins", "Jimothy", "Joebuddy", "John F.", "John L.", "Jorge", "Junior", "Kenny", "Lobe", "Mesopotamia", "Miller", "Missingno", "Mr. Smith", "Nina", "Ol' Sluggish", "Peabody", "Phideaux", "Quincent", "Rebecca", "Rex", "Richard", "Saadi", "Sally", "Shanitha", "Steven", "Timothy", "Twenteen", "Ugly", "Unknown", "Victoria", "Wes", "Xavier", "Yasmine", "Zachary", "Zadik"];
+
+        var SPRITES = ["1", "2", "3", "4"]; // All the folder names within /buddies
+        var HAND_SPRITES = ["1", "2", "3"];
+
+        var STATE_NAMES = {
+            "open": "nothing",
+            "hand": "high five",
+            "fist": "fist bump",
+            "shake": "handshake"
+        };
+
+        var encounters = {};
+        var totalEncounters = 0;
+
+        var hands = [];
+        var hand;
+        var fist;
+        var buddy;
+        var types = ["open", "hand", "fist", "shake"];
+        var buddy_types = ["hand", "fist", "shake"];
+
+        var playing = false;
+        var lost = false;
+        var overlay_start;
+        var overlay_end;
+        var end_message;
+
+        var tickOnce;
+
+        var message;
+        var st;
+
+        var shame_bg;
+        var shame_good;
+        var shame_bad;
+
+        var shamelevel = 0;
+
+        var mouseX;
+        var mouseY;
+
+        var buddies = []; // Array holding all the buddy objects.
+
+        var handPos;
+
+        var audio = new Audio('heybuddytheme.mp3');
+        var audio_yes = new Audio('yes.mp3');
+        var audio_no = new Audio('no.mp3');
+
+        function init() {
+            canvas = document.getElementById('game');
+            width = canvas.width;
+            height = canvas.height;
+            stage = new createjs.Stage(canvas);
+
+            //resize();
+
+            var background = new createjs.Bitmap("background.jpg");
+            background.y = -430;
+
+            stage.addChild(background);
+
+            createStartScreen();
+            showStartScreen();
+            createStopScreen();
+
+            initializeEncounters();
+
+            generateNewBuddies();
+
+            var handSprite = HAND_SPRITES[Math.round(Math.random() * (HAND_SPRITES.length - 1))];
+            for (var j = 0; j < types.length; j++) {
+                hands[j] = createHand(types[j], handSprite);
+            }
+            changeHand("open");
+
+            message = new createjs.Text("Hey Buddy!", "40px Fredoka One", "#000000");
+            message.x = 5;
+            message.y = 0;
+            stage.addChild(message);
+
+            st = new createjs.Text("Status: just ok", "20px Patrick Hand SC", "#000000");
+            st.x = 5;
+            st.y = 45;
+            stage.addChild(st);
+
+            shame_bg = new createjs.Shape();
+            shame_bg.graphics.beginFill(SHAMEBAR_BG).drawRect(0, 0, SHAMEBAR_WIDTH, SHAMEBAR_HEIGHT);
+            shame_bg.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
+            shame_bg.y = SHAMEBAR_PADDING;
+            shame_bg.set({
+                alpha: 0.7
+            });
+            stage.addChild(shame_bg);
+
+            var shame_line = new createjs.Shape();
+            shame_line.graphics.beginFill("#000000").drawRect(canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH, SHAMEBAR_PADDING + SHAMEBAR_HEIGHT / 2, SHAMEBAR_WIDTH, 1);
+            shame_line.set({
+                alpha: 0.8
+            });
+            stage.addChild(shame_line);
+
+            shame_good = new createjs.Shape();
+            shame_good.graphics.beginFill(SHAMEBAR_GOOD).drawRect(0, 0, SHAMEBAR_WIDTH, 1);
+            shame_good.set({
+                alpha: 0.8
+            });
+            stage.addChild(shame_good);
+
+            shame_bad = new createjs.Shape();
+            shame_bad.graphics.beginFill(SHAMEBAR_BAD).drawRect(0, 0, SHAMEBAR_WIDTH, 1);
+            shame_bad.set({
+                alpha: 0.8
+            });
+            stage.addChild(shame_bad);
 
 
-    }
-    
-    function createStartScreen() {
-      overlay_start = new createjs.Container();
-      var overlay_start_rect = new createjs.Shape();
-      overlay_start_rect.graphics.beginFill(OVERLAY_BG).drawRoundRect(canvas.width/2 - OVERLAY_WIDTH/2, canvas.height/2 - OVERLAY_HEIGHT/2, OVERLAY_WIDTH, OVERLAY_HEIGHT, 10);
-      overlay_start_rect.set({alpha: 0.8});
-      overlay_start.addChild(overlay_start_rect);
-      
-      var title = new createjs.Text("Hey... Buddy", TITLE_SIZE.toString()+"px Fredoka One", TITLE_COLOR);
-      title.x = canvas.width/2 - title.getBounds().width/2;
-      title.y = canvas.height/2 - title.getBounds().height/2 - 80;
-      overlay_start.addChild(title);
-      
-      
-      
-      var start = new createjs.Text("a game about encounters\npress and hold A, S, or D to greet\nclick anywhere to start", SUBTITLE_SIZE.toString()+"px Patrick Hand SC", SUBTITLE_COLOR);
-      start.x = canvas.width/2 - start.getBounds().width/2;
-      start.y = canvas.height/2 - start.getBounds().height/2 + 80;
-      overlay_start.addChild(start);
-      
-      overlay_start.visible = false;
-      
-      stage.addChild(overlay_start);
-    }
-    
-    function createStopScreen() {
-      overlay_stop = new createjs.Container();
-      var overlay_stop_rect = new createjs.Shape();
-      overlay_stop_rect.graphics.beginFill(OVERLAY_BG).drawRoundRect(canvas.width/2 - OVERLAY_WIDTH/2, canvas.height/2 - OVERLAY_HEIGHT/2, OVERLAY_WIDTH, OVERLAY_HEIGHT, 10);
-      overlay_stop_rect.set({alpha: 0.8});
-      overlay_stop.addChild(overlay_stop_rect);
-      
-      var title = new createjs.Text("You Lose", TITLE_SIZE.toString()+"px Fredoka One", TITLE_COLOR);
-      title.x = canvas.width/2 - title.getBounds().width/2;
-      title.y = canvas.height/2 - title.getBounds().height/2 - 80;
-      overlay_stop.addChild(title);
-      
-      
-      
-      end_message = new createjs.Text("you died of awkwardness\nclick anywhere to try again", SUBTITLE_SIZE.toString()+"px Fredoka One", SUBTITLE_COLOR);
-      end_message.x = canvas.width/2 - OVERLAY_WIDTH/2 + 10;
-      end_message.y = canvas.height/2 - end_message.getBounds().height/2;
-      overlay_stop.addChild(end_message);
-      
-      overlay_stop.visible = false;
-      
-      stage.addChild(overlay_stop);
-    }
-    
-    function hideStartScreen() {
-      overlay_start.visible = false;
-    }
-    
-    function showStartScreen() {
-      overlay_start.visible = true;
-    }
-    
-    function hideStopScreen() {
-      overlay_stop.visible = false;
-    }
-    
-    function showStopScreen() {
-      overlay_stop.visible = true;
-    }
-    
-    function youLose() {
-      
-      playing = false;
-      lost = true;
-      buddy_speed = BUDDY_SPEED;
-      buddy_max_change_time = BUDDY_MAX_CHANGE_TIME;
-      buddy_min_change_time = BUDDY_MIN_CHANGE_TIME;
-      
-      var bestCount = 0;
-      var bestFriend = 'Nobody';
-      var highFives = 0;
-      var handshakes = 0;
-      var fistBumps = 0;
-      for (var i = 0; i < NAMES.length; i++) {
-	var buddyCount = 0;
-	var d = encounters[NAMES[i]];
-	for (var j = 0; j < buddy_types.length; j++) {
-	  buddyCount += d[buddy_types[j]];
-	}
-	if (buddyCount > bestCount) {
-	  bestCount = buddyCount;
-	  bestFriend = NAMES[i];
-	  highFives = encounters[bestFriend]["hand"];
-	  handshakes = encounters[bestFriend]["shake"];
-	  fistBumps = encounters[bestFriend]["fist"];
-	}
-      }
-      var highFivesString;
-      var handshakesString;
-      var fistBumpsString;
-      if (highFives == 1) {
-	highFivesString = highFives.toString()+" high five";
-      } else {
-	highFivesString = highFives.toString()+" high fives";
-      }
-      if (handshakes == 1) {
-	handshakesString = handshakes.toString()+" handshake";
-      } else {
-	handshakesString = handshakes.toString()+" handshakes";
-      }
-      if (fistBumps == 1) {
-	fistBumpsString = fistBumps.toString()+" fist bump";
-      } else {
-	fistBumpsString = fistBumps.toString()+" fist bumps";
-      }
-      end_message.text = "you died of awkwardness\nbut survived "+totalEncounters.toString()+" total encounters\nbest friend: "+bestFriend+"\n\t\t"+highFivesString+"\n\t\t"+handshakesString+"\n\t\t"+fistBumpsString+"\nclick anywhere to start over";
-      initializeEncounters();
-      showStopScreen();
-    }
-    
-    function initializeEncounters() {
-      encounters = {};
-      for (var i = 0; i < NAMES.length; i++) {
-	var d = {}
-	for (var j = 0; j < buddy_types.length; j++) {
-	  d[buddy_types[j]] = 0;
-	}
-	encounters[NAMES[i]] = d;
-      }
-      totalEncounters = 0;
-    }
-    
-    function updateStage() {
-      stage.update();
-    }
-    
-    function updateShame() {
-      if (shamelevel > 0) {
-	shame_good.scaleY = shamelevel;
-	shame_good.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
-	shame_good.y = SHAMEBAR_PADDING + (SHAMEBAR_HEIGHT/2) - shamelevel;
-	shame_bad.scaleY = 0;
-	shame_bad.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
-	shame_bad.y = SHAMEBAR_PADDING + (SHAMEBAR_HEIGHT/2);
-      } else {
-	shame_good.scaleY = 0;
-	shame_good.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
-	shame_good.y = SHAMEBAR_PADDING + (SHAMEBAR_HEIGHT/2) - 0;
-	shame_bad.scaleY = -1*shamelevel;
-	shame_bad.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
-	shame_bad.y = SHAMEBAR_PADDING + (SHAMEBAR_HEIGHT/2);
-      }
-    }
-    
-    function updateStatus() {
-    
-      if ((shamelevel >= 0) && (shamelevel < 10)) {
-	st.text = "Status: just ok";
-      } else if ((shamelevel >= 20) && (shamelevel < 40)) {
-	st.text = "Status: pretty cool";
-      } else if ((shamelevel >= 40) && (shamelevel < 60)) {
-	st.text = "Status: hip with it";
-      } else if ((shamelevel >= 60) && (shamelevel < 80)) {
-	st.text = "Status: da bomb";
-      } else if ((shamelevel >= 80) && (shamelevel < 105)) {
-	st.text = "Status: coolest around";
-      } else if ((shamelevel >= 105) && (shamelevel < 130)) {
-	st.text = "Status: everybody loves me";
-      } else if ((shamelevel >= 130) && (shamelevel < 150)) {
-	st.text = "Status: lord of greetings";
-	
-      } else if ((shamelevel >= -20) && (shamelevel < 0)) {
-	st.text = "Status: kinda meh";
-      } else if ((shamelevel >= -40) && (shamelevel < -20)) {
-	st.text = "Status: not feeling it";
-      } else if ((shamelevel >= -60) && (shamelevel < -40)) {
-	st.text = "Status: can I go home?";
-      } else if ((shamelevel >= -80) && (shamelevel < -60)) {
-	st.text = "Status: this is all my fault";
-      } else if ((shamelevel >= -120) && (shamelevel < -80)) {
-	st.text = "Status: sever all ties";
-      } else if ((shamelevel >= -150) && (shamelevel < -120)) {
-	st.text = "Status: worst ever";
-	
-      } else {
-	st.text = "Status: off the charts";
-      }
-    
-    }
-    
-    function createHand(type, sprite) {
-      h = drawHand(type, sprite);
-      h.x = canvas.width / 2;
-      h.y = canvas.height / 2;
-      h.scaleX = 0.5;
-      h.scaleY = 0.5;
-      stage.addChild(h);
-      d = {"type": type, "obj": h};
-      return d;
-    }
 
-    function drawHand(type, sprite) {
-      var h;
-      var folder = "hands/"+sprite+"/";
-      switch(type) {
-	case "open":
-	  h = new createjs.Bitmap("hands/open.png");
-	  break;
-	case "hand":
-	  h = new createjs.Bitmap(folder+"hand.png");
-	  break;
-	case "fist":
-	  h = new createjs.Bitmap(folder+"fist.png");
-	  break;
-	case "shake":
-	  h = new createjs.Bitmap(folder+"shake.png");
-	  break;
-      }      
-      h.set({alpha: HAND_ALPHA});
-      return h;
-    }
-    
-    function generateNewBuddies() {
-      for (var i = 0; i < NUM_BUDDIES; i++) {
-	createBuddy(i, (i*BUDDY_SPACING)+BUDDY_CLOSEST);
-      }
-    }
-    
-    function randomBuddyStart() {
-      return canvas.width*BUDDY_PADDING + (Math.random() * canvas.width*(1-(2*BUDDY_PADDING)));
-    }
-    
-    function randomState() {
-      var choice = Math.round(Math.random() * buddy_types.length-1);
-      return buddy_types[choice];
-    }
-    
-    function createBuddy(i, start) {
-      var d = {};
-      
-      var container = new createjs.Container();
-      
-      var sprite = SPRITES[Math.round(Math.random() * (SPRITES.length - 1))];
-      
-      for (var j = 0; j < buddy_types.length; j++) {
-	var b = drawBuddy(buddy_types[j], sprite);
-	
-	container.addChildAt(b, j);
-      }
-      
-      var name = NAMES[Math.round(Math.random() * (NAMES.length - 1))];
-      
-      var n = new createjs.Text(name, NAMETAG_SIZE.toString()+"px Patrick Hand SC", "#000000");
-      n.x = -100;
-      n.y = -100;
-      container.addChildAt(n, buddy_types.length);
-      
-      stage.addChildAt(container, 2);
-      
-      var state = randomState();
-      
-      
-      
-      buddies[i] = {"container": container, "z": start, "x": randomBuddyStart(), "state": state, "waitCounter": 0, "waitLimit": newBuddyWaitTime(), "name" : name, "encountered": false, "sprite": sprite};
-      changeBuddyType(i, "hand");
-      changeBuddyType(i, state);
-    }
-    
-    function drawBuddy(type, sprite) {
-      var b;
-      var folder = "buddies/"+sprite+"/";
-      switch(type) {
-	case "open":
-	  b = new createjs.Bitmap(folder+"buddy-open.png");
-	  break;
-	case "hand":
-	  b = new createjs.Bitmap(folder+"buddy-hand.png");
-	  break;
-	case "fist":
-	  b = new createjs.Bitmap(folder+"buddy-fist.png");
-	  break;
-	case "shake":
-	  b = new createjs.Bitmap(folder+"buddy-shake.png");
-	  break;
-      }
-      b.x = canvas.width / 2;
-      b.y = canvas.height / 2;
-      b.scaleX = 0.01;
-      b.scaleY = 0.01;
-      return b;
-    }
-    
-    function newBuddyWaitTime() {
-      return (Math.random() * (BUDDY_MAX_CHANGE_TIME - BUDDY_MIN_CHANGE_TIME)) + BUDDY_MIN_CHANGE_TIME;
-    }
-    
-    /*function moveAllBuddies(d, x, z) {
-      var c = d.container;
-      var bounds = c.getBounds();
-      c.scaleX = 1/z;
-      c.scaleY = 1/z;
-      var effWidth = bounds.width * c.scaleX;
-      var effHeight = bounds.height * c.scaleY;
-      c.x = x - effWidth/2;
-      c.y = 3*canvas.height/4 - effHeight/2 - 200/z;
-      c.set({alpha: 5/z});
-    }*/
-    
-    function moveAllBuddies(d, x, z) {
-      for (var j = 0; j < buddy_types.length; j++) {
-	var b = d.container.getChildAt(j);
-	moveBuddy(b, x, z);
-      }
-      moveName(d, x, z);
-    }
-    
-    function moveName(d, x, z) {
-      //console.log(d.name);
-      
-      var n = d.container.getChildAt(buddy_types.length);
-      var bounds = n.getBounds();
-      n.scaleX = 1/z;
-      n.scaleY = 1/z;
-      var effWidth = bounds.width * n.scaleX;
-      var effHeight = bounds.height * n.scaleY;
-      n.x = x - effWidth/2 + 10;
-      n.y = HORIZON_PCT*canvas.height - effHeight/2 - NAMETAG_OFFSET/z;
-      n.set({alpha: 5/z});
-    }
-    
-    function moveBuddy(b, x, z) {
-      // b is the buddy object
-      // x is horizontal position on the screen
-      // z is distance away from viewer
-      var bounds = b.getBounds();
-      b.scaleX = 1/z;
-      b.scaleY = 1/z;
-      var effWidth = bounds.width * b.scaleX;
-      var effHeight = bounds.height * b.scaleY;
-      b.x = x - effWidth/2;
-      b.y = HORIZON_PCT*canvas.height - effHeight/2;
-      b.set({alpha: 5/z});
-    
-    }
-    
-    function changeBuddyType(i, type) {
-      var d = buddies[i];
-      d.state = type;
-      for (var j = 0; j < buddy_types.length; j++) {
-	var b = d.container.getChildAt(j);
-	if (buddy_types[j] != type) {
-	  hideBuddy(b);
-	} else {
-	  showBuddy(b);
-	}
-      }
-    }
-    
-    function hideAllBuddies(d) {
-      for (var j = 0; j < buddy_types.length+1; j++) {
-	var b = d.container.getChildAt(j);
-	hideBuddy(b);
-      }
-    }
-    
-    function hideBuddy(b) {
-      b.visible = false;
-    }
-    
-    function showBuddy(b) {
-      b.visible = true;
-    }
-    
-    function changeHand(type) {
-      for (var i = 0; i < hands.length; i++) {
-	hands[i].obj.visible = false;
-	if (hands[i].type == type) {
-	  hands[i].obj.visible = true;
-	}
-      }
-      handPos = type;
-    }
+            updateShame();
 
-    function keyPressed(evt) {
-      //console.log(event.keyCode);
-      switch(event.keyCode) {
-	case KEYCODE_A:
-	  changeHand("hand");
-	  break;
-	case KEYCODE_S: 
-	  changeHand("fist");
-	  break;
-	case KEYCODE_D:
-	  changeHand("shake");
-	  break;
-	case KEYCODE_F:
-	  break;
-      }
-      updateStage();
-    }
+            updateStage();
 
+            stage.on("stagemousemove", function(evt) {
+                for (var i = 0; i < hands.length; i++) {
+                    hands[i].obj.x = evt.stageX - hands[i].obj.getBounds().width / 4;
+                    hands[i].obj.y = evt.stageY - hands[i].obj.getBounds().height / 4;
+                    mouseX = evt.stageX;
+                    mouseY = evt.stageY;
+                }
+            });
+
+            //tickOnce = true;
+
+            stage.on("stagemouseup", function(evt) {
+                hideStartScreen();
+                hideStopScreen();
+                if (playing == false) {
+                    audio.play();
+                    audio.addEventListener('ended', function() {
+                        this.currentTime = 0;
+                        this.play();
+                    }, false);
+                }
+                playing = true;
+                if (lost == true) {
+                    lost = false;
+                    for (var i = 0; i < buddies.length; i++) {
+                        var b = buddies[i];
+                        hideAllBuddies(b);
+                    }
+                    shamelevel = 0;
+                    message.text = "Hey Buddy!";
+                    updateStatus();
+                    generateNewBuddies();
+                }
+            });
+
+            this.document.onkeydown = keyPressed;
+            this.document.onkeyup = function() {
+                changeHand("open");
+            };
+
+            createjs.Ticker.addEventListener("tick", tick);
+            createjs.Ticker.setFPS(FPS);
+
+            function tick(evt) {
+
+                if (playing || tickOnce) {
+                    tickOnce = false;
+                    buddy_speed += BUDDY_ACCELERATION;
+
+                    if (buddy_min_change_time > BUDDY_ABSOLUTE_MIN_CHANGE_TIME) {
+                        buddy_min_change_time -= BUDDY_CHANGE_ACCELERATION;
+                    }
+                    if (buddy_max_change_time > BUDDY_ABSOLUTE_MIN_CHANGE_TIME + 1) {
+                        buddy_max_change_time -= BUDDY_CHANGE_ACCELERATION;
+                    }
+
+                    for (var i = 0; i < buddies.length; i++) {
+                        var b = buddies[i];
+
+                        // Buddy movement
+                        b.z -= buddy_speed;
+                        if (b.z < BUDDY_AVOID_START && (b.z > BUDDY_AVOID_END)) {
+                            if (b.x > canvas.width / 2) {
+                                b.x += BUDDY_AVOID_RATE * BUDDY_SPEED;
+                            } else {
+                                b.x -= BUDDY_AVOID_RATE * BUDDY_SPEED;
+                            }
+                            moveAllBuddies(b, b.x, b.z);
+
+                            if (b.encountered == false) {
+                                if ((b.state == handPos) && (mouseX >= (b.x - HITBOX_WIDTH)) && (mouseX <= (b.x + HITBOX_WIDTH))) {
+                                    message.text = "Sweet " + STATE_NAMES[b.state] + " with " + b.name;
+                                    audio_yes.currentTime = 0;
+                                    audio_yes.play();
+                                    if (shamelevel <= SHAME_LIMIT - SHAME_INCREMENT) {
+                                        shamelevel += SHAME_INCREMENT;
+                                    }
+                                    encounters[b.name][b.state] += 1;
+                                } else {
+                                    message.text = "Awkward moment with " + b.name;
+                                    audio_no.currentTime = 0;
+                                    audio_no.play();
+                                    if (shamelevel >= -1 * SHAME_LIMIT + SHAME_INCREMENT) {
+                                        shamelevel -= SHAME_INCREMENT;
+                                        //encounters[b.name][b.state] -= 1;
+                                    } else {
+                                        youLose();
+                                    }
+                                }
+                                updateStatus();
+                                totalEncounters += 1;
+                                b.encountered = true;
+                            }
+
+                        } else if (b.z <= BUDDY_AVOID_END) {
+                            hideAllBuddies(b);
+                            console.log("new buddy!");
+                            createBuddy(i, ((NUM_BUDDIES - 1) * BUDDY_SPACING) + BUDDY_CLOSEST);
+                            moveAllBuddies(buddies[i], b.x, b.z);
+
+                        } else {
+                            moveAllBuddies(b, b.x, b.z);
+                        }
+
+                        // Buddy type changing
+                        b.waitCounter += 1;
+                        if ((b.waitCounter > b.waitLimit) && (b.z > BUDDY_MIN_CHANGE_Z)) {
+                            // Reset the counter
+                            b.waitCounter = 0;
+                            // Come up with a new wait time
+                            var newWait = newBuddyWaitTime();
+                            b.waitLimit = newWait;
+                            // Change the buddy to a new random state
+
+                            var goodChoice = false;
+                            var newType;
+                            while (!goodChoice) {
+                                var choice = Math.round(Math.random() * buddy_types.length);
+                                var newType = buddy_types[choice];
+                                if (newType != b.type) {
+                                    goodChoice = true;
+                                }
+                            }
+                            changeBuddyType(i, newType);
+                        }
+
+                        updateShame();
+
+                    }
+
+                }
+
+                updateStage();
+                var fps = document.getElementById('fps');
+                fps.innerHTML = createjs.Ticker.getMeasuredFPS();
+            }
+
+
+        }
+
+        /*function resize() {   
+            stage.canvas.width = window.innerWidth;
+            stage.canvas.height = window.innerHeight; 
+               
+            if (stage.canvas.width/stage.canvas.height < ASPECT_RATIO)
+            {
+                stage.scaleX = stage.canvas.width/ACTUAL_WIDTH;
+                stage.scaleY = stage.scaleX;
+                stage.y = (stage.canvas.height-(ACTUAL_HEIGHT*stage.scaleY))/2
+                stage.x = 0;
+            }
+            else
+            {
+                stage.scaleY = stage.canvas.height/ACTUAL_HEIGHT;
+                stage.scaleX = stage.scaleY;
+                stage.x = (stage.canvas.width-(ACTUAL_WIDTH*stage.scaleX))/2
+                stage.y = 0;
+            }
+        } */
+
+        function createStartScreen() {
+            overlay_start = new createjs.Container();
+            var overlay_start_rect = new createjs.Shape();
+            overlay_start_rect.graphics.beginFill(OVERLAY_BG).drawRoundRect(canvas.width / 2 - OVERLAY_WIDTH / 2, canvas.height / 2 - OVERLAY_HEIGHT / 2, OVERLAY_WIDTH, OVERLAY_HEIGHT, 10);
+            overlay_start_rect.set({
+                alpha: 0.8
+            });
+            overlay_start.addChild(overlay_start_rect);
+
+            var title = new createjs.Text("Hey... Buddy", TITLE_SIZE.toString() + "px Fredoka One", TITLE_COLOR);
+            title.x = canvas.width / 2 - title.getBounds().width / 2;
+            title.y = canvas.height / 2 - title.getBounds().height / 2 - 80;
+            overlay_start.addChild(title);
+
+
+
+            var start = new createjs.Text("a game about encounters\npress and hold A, S, or D to greet\nclick anywhere to start", SUBTITLE_SIZE.toString() + "px Patrick Hand SC", SUBTITLE_COLOR);
+            start.x = canvas.width / 2 - start.getBounds().width / 2;
+            start.y = canvas.height / 2 - start.getBounds().height / 2 + 80;
+            overlay_start.addChild(start);
+
+            overlay_start.visible = false;
+
+            stage.addChild(overlay_start);
+        }
+
+        function createStopScreen() {
+            overlay_stop = new createjs.Container();
+            var overlay_stop_rect = new createjs.Shape();
+            overlay_stop_rect.graphics.beginFill(OVERLAY_BG).drawRoundRect(canvas.width / 2 - OVERLAY_WIDTH / 2, canvas.height / 2 - OVERLAY_HEIGHT / 2, OVERLAY_WIDTH, OVERLAY_HEIGHT, 10);
+            overlay_stop_rect.set({
+                alpha: 0.8
+            });
+            overlay_stop.addChild(overlay_stop_rect);
+
+            var title = new createjs.Text("You Lose", TITLE_SIZE.toString() + "px Fredoka One", TITLE_COLOR);
+            title.x = canvas.width / 2 - title.getBounds().width / 2;
+            title.y = canvas.height / 2 - title.getBounds().height / 2 - 80;
+            overlay_stop.addChild(title);
+
+
+
+            end_message = new createjs.Text("you died of awkwardness\nclick anywhere to try again", SUBTITLE_SIZE.toString() + "px Fredoka One", SUBTITLE_COLOR);
+            end_message.x = canvas.width / 2 - OVERLAY_WIDTH / 2 + 10;
+            end_message.y = canvas.height / 2 - end_message.getBounds().height / 2;
+            overlay_stop.addChild(end_message);
+
+            overlay_stop.visible = false;
+
+            stage.addChild(overlay_stop);
+        }
+
+        function hideStartScreen() {
+            overlay_start.visible = false;
+        }
+
+        function showStartScreen() {
+            overlay_start.visible = true;
+        }
+
+        function hideStopScreen() {
+            overlay_stop.visible = false;
+        }
+
+        function showStopScreen() {
+            overlay_stop.visible = true;
+        }
+
+        function youLose() {
+
+            playing = false;
+            lost = true;
+            buddy_speed = BUDDY_SPEED;
+            buddy_max_change_time = BUDDY_MAX_CHANGE_TIME;
+            buddy_min_change_time = BUDDY_MIN_CHANGE_TIME;
+
+            var bestCount = 0;
+            var bestFriend = 'Nobody';
+            var highFives = 0;
+            var handshakes = 0;
+            var fistBumps = 0;
+            for (var i = 0; i < NAMES.length; i++) {
+                var buddyCount = 0;
+                var d = encounters[NAMES[i]];
+                for (var j = 0; j < buddy_types.length; j++) {
+                    buddyCount += d[buddy_types[j]];
+                }
+                if (buddyCount > bestCount) {
+                    bestCount = buddyCount;
+                    bestFriend = NAMES[i];
+                    highFives = encounters[bestFriend]["hand"];
+                    handshakes = encounters[bestFriend]["shake"];
+                    fistBumps = encounters[bestFriend]["fist"];
+                }
+            }
+            var highFivesString;
+            var handshakesString;
+            var fistBumpsString;
+            if (highFives == 1) {
+                highFivesString = highFives.toString() + " high five";
+            } else {
+                highFivesString = highFives.toString() + " high fives";
+            }
+            if (handshakes == 1) {
+                handshakesString = handshakes.toString() + " handshake";
+            } else {
+                handshakesString = handshakes.toString() + " handshakes";
+            }
+            if (fistBumps == 1) {
+                fistBumpsString = fistBumps.toString() + " fist bump";
+            } else {
+                fistBumpsString = fistBumps.toString() + " fist bumps";
+            }
+            end_message.text = "you died of awkwardness\nbut survived " + totalEncounters.toString() + " total encounters\nbest friend: " + bestFriend + "\n\t\t" + highFivesString + "\n\t\t" + handshakesString + "\n\t\t" + fistBumpsString + "\nclick anywhere to start over";
+            initializeEncounters();
+            showStopScreen();
+        }
+
+        function initializeEncounters() {
+            encounters = {};
+            for (var i = 0; i < NAMES.length; i++) {
+                var d = {}
+                for (var j = 0; j < buddy_types.length; j++) {
+                    d[buddy_types[j]] = 0;
+                }
+                encounters[NAMES[i]] = d;
+            }
+            totalEncounters = 0;
+        }
+
+        function updateStage() {
+            stage.update();
+        }
+
+        function updateShame() {
+            if (shamelevel > 0) {
+                shame_good.scaleY = shamelevel;
+                shame_good.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
+                shame_good.y = SHAMEBAR_PADDING + (SHAMEBAR_HEIGHT / 2) - shamelevel;
+                shame_bad.scaleY = 0;
+                shame_bad.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
+                shame_bad.y = SHAMEBAR_PADDING + (SHAMEBAR_HEIGHT / 2);
+            } else {
+                shame_good.scaleY = 0;
+                shame_good.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
+                shame_good.y = SHAMEBAR_PADDING + (SHAMEBAR_HEIGHT / 2) - 0;
+                shame_bad.scaleY = -1 * shamelevel;
+                shame_bad.x = canvas.width - SHAMEBAR_PADDING - SHAMEBAR_WIDTH;
+                shame_bad.y = SHAMEBAR_PADDING + (SHAMEBAR_HEIGHT / 2);
+            }
+        }
+
+        function updateStatus() {
+
+            if ((shamelevel >= 0) && (shamelevel < 10)) {
+                st.text = "Status: just ok";
+            } else if ((shamelevel >= 20) && (shamelevel < 40)) {
+                st.text = "Status: pretty cool";
+            } else if ((shamelevel >= 40) && (shamelevel < 60)) {
+                st.text = "Status: hip with it";
+            } else if ((shamelevel >= 60) && (shamelevel < 80)) {
+                st.text = "Status: da bomb";
+            } else if ((shamelevel >= 80) && (shamelevel < 105)) {
+                st.text = "Status: coolest around";
+            } else if ((shamelevel >= 105) && (shamelevel < 130)) {
+                st.text = "Status: everybody loves me";
+            } else if ((shamelevel >= 130) && (shamelevel < 150)) {
+                st.text = "Status: lord of greetings";
+
+            } else if ((shamelevel >= -20) && (shamelevel < 0)) {
+                st.text = "Status: kinda meh";
+            } else if ((shamelevel >= -40) && (shamelevel < -20)) {
+                st.text = "Status: not feeling it";
+            } else if ((shamelevel >= -60) && (shamelevel < -40)) {
+                st.text = "Status: can I go home?";
+            } else if ((shamelevel >= -80) && (shamelevel < -60)) {
+                st.text = "Status: this is all my fault";
+            } else if ((shamelevel >= -120) && (shamelevel < -80)) {
+                st.text = "Status: sever all ties";
+            } else if ((shamelevel >= -150) && (shamelevel < -120)) {
+                st.text = "Status: worst ever";
+
+            } else {
+                st.text = "Status: off the charts";
+            }
+
+        }
+
+        function createHand(type, sprite) {
+            h = drawHand(type, sprite);
+            h.x = canvas.width / 2;
+            h.y = canvas.height / 2;
+            h.scaleX = 0.5;
+            h.scaleY = 0.5;
+            stage.addChild(h);
+            d = {
+                "type": type,
+                "obj": h
+            };
+            return d;
+        }
+
+        function drawHand(type, sprite) {
+            var h;
+            var folder = "hands/" + sprite + "/";
+            switch (type) {
+                case "open":
+                    h = new createjs.Bitmap("hands/open.png");
+                    break;
+                case "hand":
+                    h = new createjs.Bitmap(folder + "hand.png");
+                    break;
+                case "fist":
+                    h = new createjs.Bitmap(folder + "fist.png");
+                    break;
+                case "shake":
+                    h = new createjs.Bitmap(folder + "shake.png");
+                    break;
+            }
+            h.set({
+                alpha: HAND_ALPHA
+            });
+            return h;
+        }
+
+        function generateNewBuddies() {
+            for (var i = 0; i < NUM_BUDDIES; i++) {
+                createBuddy(i, (i * BUDDY_SPACING) + BUDDY_CLOSEST);
+            }
+        }
+
+        function randomBuddyStart() {
+            return canvas.width * BUDDY_PADDING + (Math.random() * canvas.width * (1 - (2 * BUDDY_PADDING)));
+        }
+
+        function randomState() {
+            var choice = Math.round(Math.random() * buddy_types.length - 1);
+            return buddy_types[choice];
+        }
+
+        function createBuddy(i, start) {
+            var d = {};
+
+            var container = new createjs.Container();
+
+            var sprite = SPRITES[Math.round(Math.random() * (SPRITES.length - 1))];
+
+            for (var j = 0; j < buddy_types.length; j++) {
+                var b = drawBuddy(buddy_types[j], sprite);
+
+                container.addChildAt(b, j);
+            }
+
+            var name = NAMES[Math.round(Math.random() * (NAMES.length - 1))];
+
+            var n = new createjs.Text(name, NAMETAG_SIZE.toString() + "px Patrick Hand SC", "#000000");
+            n.x = -100;
+            n.y = -100;
+            container.addChildAt(n, buddy_types.length);
+
+            stage.addChildAt(container, 2);
+
+            var state = randomState();
+
+
+
+            buddies[i] = {
+                "container": container,
+                "z": start,
+                "x": randomBuddyStart(),
+                "state": state,
+                "waitCounter": 0,
+                "waitLimit": newBuddyWaitTime(),
+                "name": name,
+                "encountered": false,
+                "sprite": sprite
+            };
+            changeBuddyType(i, "hand");
+            changeBuddyType(i, state);
+        }
+
+        function drawBuddy(type, sprite) {
+            var b;
+            var folder = "buddies/" + sprite + "/";
+            switch (type) {
+                case "open":
+                    b = new createjs.Bitmap(folder + "buddy-open.png");
+                    break;
+                case "hand":
+                    b = new createjs.Bitmap(folder + "buddy-hand.png");
+                    break;
+                case "fist":
+                    b = new createjs.Bitmap(folder + "buddy-fist.png");
+                    break;
+                case "shake":
+                    b = new createjs.Bitmap(folder + "buddy-shake.png");
+                    break;
+            }
+            b.x = canvas.width / 2;
+            b.y = canvas.height / 2;
+            b.scaleX = 0.01;
+            b.scaleY = 0.01;
+            return b;
+        }
+
+        function newBuddyWaitTime() {
+            return (Math.random() * (BUDDY_MAX_CHANGE_TIME - BUDDY_MIN_CHANGE_TIME)) + BUDDY_MIN_CHANGE_TIME;
+        }
+
+        /*function moveAllBuddies(d, x, z) {
+          var c = d.container;
+          var bounds = c.getBounds();
+          c.scaleX = 1/z;
+          c.scaleY = 1/z;
+          var effWidth = bounds.width * c.scaleX;
+          var effHeight = bounds.height * c.scaleY;
+          c.x = x - effWidth/2;
+          c.y = 3*canvas.height/4 - effHeight/2 - 200/z;
+          c.set({alpha: 5/z});
+        }*/
+
+        function moveAllBuddies(d, x, z) {
+            for (var j = 0; j < buddy_types.length; j++) {
+                var b = d.container.getChildAt(j);
+                moveBuddy(b, x, z);
+            }
+            moveName(d, x, z);
+        }
+
+        function moveName(d, x, z) {
+            //console.log(d.name);
+
+            var n = d.container.getChildAt(buddy_types.length);
+            var bounds = n.getBounds();
+            n.scaleX = 1 / z;
+            n.scaleY = 1 / z;
+            var effWidth = bounds.width * n.scaleX;
+            var effHeight = bounds.height * n.scaleY;
+            n.x = x - effWidth / 2 + 10;
+            n.y = HORIZON_PCT * canvas.height - effHeight / 2 - NAMETAG_OFFSET / z;
+            n.set({
+                alpha: 5 / z
+            });
+        }
+
+        function moveBuddy(b, x, z) {
+            // b is the buddy object
+            // x is horizontal position on the screen
+            // z is distance away from viewer
+            var bounds = b.getBounds();
+            b.scaleX = 1 / z;
+            b.scaleY = 1 / z;
+            var effWidth = bounds.width * b.scaleX;
+            var effHeight = bounds.height * b.scaleY;
+            b.x = x - effWidth / 2;
+            b.y = HORIZON_PCT * canvas.height - effHeight / 2;
+            b.set({
+                alpha: 5 / z
+            });
+
+        }
+
+        function changeBuddyType(i, type) {
+            var d = buddies[i];
+            d.state = type;
+            for (var j = 0; j < buddy_types.length; j++) {
+                var b = d.container.getChildAt(j);
+                if (buddy_types[j] != type) {
+                    hideBuddy(b);
+                } else {
+                    showBuddy(b);
+                }
+            }
+        }
+
+        function hideAllBuddies(d) {
+            for (var j = 0; j < buddy_types.length + 1; j++) {
+                var b = d.container.getChildAt(j);
+                hideBuddy(b);
+            }
+        }
+
+        function hideBuddy(b) {
+            b.visible = false;
+        }
+
+        function showBuddy(b) {
+            b.visible = true;
+        }
+
+        function changeHand(type) {
+            for (var i = 0; i < hands.length; i++) {
+                hands[i].obj.visible = false;
+                if (hands[i].type == type) {
+                    hands[i].obj.visible = true;
+                }
+            }
+            handPos = type;
+        }
+
+        function keyPressed(evt) {
+            //console.log(event.keyCode);
+            switch (event.keyCode) {
+                case KEYCODE_A:
+                    changeHand("hand");
+                    break;
+                case KEYCODE_S:
+                    changeHand("fist");
+                    break;
+                case KEYCODE_D:
+                    changeHand("shake");
+                    break;
+                case KEYCODE_F:
+                    break;
+            }
+            updateStage();
+        }
     </script>
-  </head>
-  <body onload="init();">
-  <div id="center">
-    <canvas id="game" width="800" height="600"></canvas>
-    <br />
-    <span id="fps-container"><span id="fps">Loading</span> FPS</span>
-  </div> 
-  </body>
+</head>
+
+<body onload="init();">
+    <div id="center">
+        <canvas id="game" width="800" height="600"></canvas>
+        <br />
+        <span id="fps-container"><span id="fps">Loading</span> FPS</span>
+    </div>
+</body>
+
 </html>
-      
